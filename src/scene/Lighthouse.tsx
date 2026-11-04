@@ -80,32 +80,19 @@ export const BEAM_STEP = 15; // frames between one ray's beam and the next (a ha
 export const BEAM_COUNT = RAYS.length;
 const BEAM_LENGTH = 2600;
 
-const BEAM_HALF = (9 * Math.PI) / 180; // half-angle of a beam's flare
+// The beam in flat style, like the bulb's halo: nested wedges of solid pale light, a wide
+// faint one and a narrower one inside it (brighter where they overlap), each flaring at its
+// own angle from the pill. The pill itself stays as a solid white stub at the beam's root.
+const BEAM_LAYERS = [
+  { half: (9 * Math.PI) / 180, opacity: 0.1 },
+  { half: (4 * Math.PI) / 180, opacity: 0.12 },
+];
+const BEAM_COLOR = "#fff3c4";
 
-// Soft beams growing out of the logo's pills, along each one's direction: they shoot out,
-// hold, and fade out gently as the next ones come on (the last one stays).
+// Beams growing out of the logo's pills, along each one's direction: they shoot out, hold,
+// and fade out gently as the next ones come on (the last one stays).
 const Beams: React.FC<{ time: number; on: number }> = ({ time, on }) => (
   <g opacity={on}>
-    <defs>
-      {RAYS.map((r, i) => (
-        <linearGradient
-          key={i}
-          id={`fe-beam-${i}`}
-          gradientUnits="userSpaceOnUse"
-          x1={r.cx - r.dx * r.half}
-          y1={r.cy - r.dy * r.half}
-          x2={r.cx + r.dx * BEAM_LENGTH}
-          y2={r.cy + r.dy * BEAM_LENGTH}
-        >
-          {/* The pill's own white, turning into soft light along the beam */}
-          <stop offset="0%" stopColor="#fff" stopOpacity={1} />
-          <stop offset={`${((r.half * 2) / BEAM_LENGTH) * 100}%`} stopColor="#fff" stopOpacity={0.95} />
-          <stop offset="8%" stopColor="#fff3c4" stopOpacity={0.7} />
-          <stop offset="35%" stopColor="#ffe08a" stopOpacity={0.35} />
-          <stop offset="100%" stopColor="#ffe08a" stopOpacity={0} />
-        </linearGradient>
-      ))}
-    </defs>
     {RAYS.map((r, i) => {
       const { reach, fade } = beamState(time, i);
       if (fade <= 0 || reach <= 0) return null;
@@ -117,14 +104,27 @@ const Beams: React.FC<{ time: number; on: number }> = ({ time, on }) => (
       const px = -r.dy;
       const py = r.dx;
       const w0 = r.width / 2;
-      const w1 = w0 + len * Math.tan(BEAM_HALF);
-      const fx = ix + r.dx * len;
-      const fy = iy + r.dy * len;
       // The start is rounded like the pill: a half-circle cap behind its inner end.
       const bx = ix - r.dx * w0;
       const by = iy - r.dy * w0;
-      const d = `M${ix + px * w0} ${iy + py * w0} L${fx + px * w1} ${fy + py * w1} L${fx - px * w1} ${fy - py * w1} L${ix - px * w0} ${iy - py * w0} A${w0} ${w0} 0 0 0 ${bx} ${by} A${w0} ${w0} 0 0 0 ${ix + px * w0} ${iy + py * w0} Z`;
-      return <path key={i} d={d} fill={`url(#fe-beam-${i})`} opacity={fade} />;
+      const wedge = (length: number, half: number) => {
+        const w1 = w0 + length * Math.tan(half);
+        const fx = ix + r.dx * length;
+        const fy = iy + r.dy * length;
+        return `M${ix + px * w0} ${iy + py * w0} L${fx + px * w1} ${fy + py * w1} L${fx - px * w1} ${fy - py * w1} L${ix - px * w0} ${iy - py * w0} A${w0} ${w0} 0 0 0 ${bx} ${by} A${w0} ${w0} 0 0 0 ${ix + px * w0} ${iy + py * w0} Z`;
+      };
+      // The pill's stub: the pill itself, solid white, at the beam's root.
+      const stub = r.half * 2 - r.width;
+      const ox = ix + r.dx * stub;
+      const oy = iy + r.dy * stub;
+      return (
+        <g key={i} opacity={fade}>
+          {BEAM_LAYERS.map((l) => (
+            <path key={l.half} d={wedge(len, l.half)} fill={BEAM_COLOR} opacity={l.opacity} />
+          ))}
+          <line x1={ix} y1={iy} x2={ox} y2={oy} stroke="#fff" strokeWidth={r.width} strokeLinecap="round" />
+        </g>
+      );
     })}
   </g>
 );
