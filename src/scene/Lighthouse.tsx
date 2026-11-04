@@ -93,8 +93,8 @@ const BEAM_LAYERS = [
   { half: (9 * Math.PI) / 180, opacity: 0.22 },
   { half: (4 * Math.PI) / 180, opacity: 0.3 },
 ];
-// Warm lamp light, leaning amber so it stays warm over the teal sky.
-const BEAM_COLOR = "#ffc456";
+// Soft warm lamp light (a pale yellow, a little less warm than amber).
+const BEAM_COLOR = "#ffdd8f";
 
 // Beams growing out of the logo's pills, along each one's direction: they shoot out, hold,
 // and fade out gently as the next ones come on (the last one stays).
