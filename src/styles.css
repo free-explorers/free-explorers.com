@@ -180,6 +180,13 @@ a {
   align-items: flex-end;
   text-align: right;
 }
+/* Centred in the lighthouse's beam (placed by App), with the tagline centred under it. */
+.title-beam {
+  position: absolute;
+  transform: translateX(-50%);
+  align-items: center;
+  text-align: center;
+}
 /* On one line: it may reach left past the column, over the sky. */
 .wordmark {
   display: block;
