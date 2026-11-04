@@ -175,12 +175,17 @@ a {
 }
 
 .title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   text-align: right;
 }
+/* On one line: it may reach left past the column, over the sky. */
 .wordmark {
   display: block;
+  white-space: nowrap;
   font-weight: 800;
-  font-size: clamp(40px, 4.4vw, 68px);
+  font-size: clamp(36px, 3.6vw, 60px);
   line-height: 0.95;
   letter-spacing: -0.01em;
   text-decoration: none;
@@ -188,6 +193,7 @@ a {
 }
 .tagline {
   margin: 10px 0 0;
+  white-space: nowrap;
   color: var(--muted);
   font-size: 16px;
 }
