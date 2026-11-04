@@ -3,6 +3,7 @@ import { BOATS, type BoatKind } from "../members";
 import { BoatShape } from "../scene/Boat";
 import { Bob } from "../scene/Motion";
 import { VARIANTS } from "./variants";
+import { CLOTH_MODES, ClothBoat } from "./cloth";
 
 // Boat variations (dev only, not part of the site): a row per boat type, the current boat
 // first, then five variants of the same style, each showing the donor a different way.
@@ -20,6 +21,17 @@ const DONOR: Record<BoatKind, { name: string; image?: string }> = {
   brig: { name: "CodingKoalaGeneral", image: "https://images.opencollective.com/codingkoalageneral1/avatar/128.png" },
   galleon: { name: "Acme Corp", image: ACME },
 };
+// Logos for the cloth proposals, one of each kind Open Collective serves: a transparent round
+// logo, a transparent logo, an opaque square, a wide company logo. The fallback cell shows a
+// member without a logo.
+const CLOTH_DONOR: Record<BoatKind, { name: string; image?: string }> = {
+  dinghy: { name: "Airbnb", image: "https://images.opencollective.com/airbnb/avatar/512.png" },
+  sloop: { name: "Webpack", image: "https://images.opencollective.com/webpack/avatar/512.png" },
+  brig: { name: "Sentry", image: "https://images.opencollective.com/sentry/9620d33/logo/512.png" },
+  galleon: { name: "Acme Corp", image: ACME },
+};
+const NO_LOGO = "Rodolfo Hansen";
+
 // Each row's frame, fitted to its boat (x, y, width, height), the waterline at 0.
 const FRAME: Record<BoatKind, [number, number, number, number]> = {
   dinghy: [-130, -230, 280, 260],
@@ -52,7 +64,34 @@ const Cell: React.FC<{ kind: BoatKind; label: string; current?: boolean; childre
 export const BoatLab: React.FC = () => (
   <main className="lab">
     <header>
-      <h1>Boat variations</h1>
+      <h1>Logo as sail cloth</h1>
+      <p>
+        The donor's name on the hull and their logo as sail cloth, on the site's boats. Five treatments per boat, then the fallback for a donor without a logo.
+        Logos of each kind Open Collective serves: transparent round (Airbnb), transparent (Webpack), an opaque square (Sentry), a wide company logo (sample).
+      </p>
+    </header>
+    {KINDS.map((kind) => {
+      const b = BOATS.find((x) => x.id === kind)!;
+      const donor = CLOTH_DONOR[kind];
+      return (
+        <section key={`cloth-${kind}`} className="lab-row">
+          <h2>
+            {b.name} <span>{b.range} / mo</span>
+          </h2>
+          <div className="lab-cells">
+            {CLOTH_MODES.map((c, i) => (
+              <Cell key={c.mode} kind={kind} label={`${i + 1} · ${c.label}`}>
+                <Bob delay={i * 1.1} deg={kind === "galleon" ? 0.8 : 1.4}>
+                  <ClothBoat kind={kind} mode={c.mode} image={c.mode === "plain" ? undefined : donor.image} name={c.mode === "plain" ? NO_LOGO : donor.name} uid={`cl-${kind}-${c.mode}`} color={b.color} />
+                </Bob>
+              </Cell>
+            ))}
+          </div>
+        </section>
+      );
+    })}
+    <header className="lab-later">
+      <h1>Earlier: boat variations</h1>
       <p>Five variants per boat in the site's style, each showing the donor a different way: a big logo, a printed sail, a flag, a spinnaker, a name streamer, their name on the hull. The current boat comes first.</p>
     </header>
     {KINDS.map((kind) => {
