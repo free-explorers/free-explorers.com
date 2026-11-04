@@ -103,6 +103,11 @@ const BEAM_FADE = [
   { at: 1, opacity: 0 },
 ];
 
+// A flat halo around the bulb: two solid rings of the beam's warm light, coming on with
+// the first beam.
+const HALO_RINGS = [78, 60];
+const HALO_OPACITY = 0.14;
+
 // Beams growing out of the logo's pills, along each one's direction: they shoot out, hold,
 // and fade out gently as the next ones come on (the last one stays).
 const Beams: React.FC<{ time: number; on: number }> = ({ time, on }) => (
@@ -185,6 +190,10 @@ export const Lighthouse: React.FC<{ color?: string; hole: string; beams?: number
       </clipPath>
 
     </defs>
+    {beams > 0 &&
+      HALO_RINGS.map((r) => (
+        <circle key={r} cx={BULB.x} cy={BULB.y} r={r} fill={BEAM_COLOR} opacity={HALO_OPACITY * beams * Math.min(1, Math.max(0, time / 8))} />
+      ))}
     {beams > 0 && <Beams time={time} on={beams} />}
     {tower ? (
       // Down to the foot (the white version has its rock below BOTTOM).
