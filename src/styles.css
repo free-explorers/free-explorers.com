@@ -45,10 +45,6 @@ a {
   display: block;
 }
 
-.camera {
-  will-change: transform;
-}
-
 /* The sea rolls: each wave band slides by one wavelength (120 units), looping. */
 .wave {
   animation: roll 6s linear infinite;
