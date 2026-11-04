@@ -103,7 +103,11 @@ export const toMembers = (raw: Raw[]): Member[] => {
 // their active recurring contribution if any, else their latest paid one; yearly counts for
 // a twelfth. Keyed by profile slug.
 type Order = { status: string; frequency: "MONTHLY" | "YEARLY" | "ONETIME"; amount: { value: number }; fromAccount: { slug: string } };
-const ORDERS_QUERY = `{ account(slug: "${SLUG}") { orders(filter: INCOMING, limit: 1000) { nodes { status frequency amount { value } fromAccount { slug } } } } }`;
+// Only the active contributions (monthly/yearly, and some one-time ones still processing),
+// all of them, page by page: a big collective's newest contributions don't include the
+// monthly donations started long ago.
+const ordersQuery = (offset: number) =>
+  `{ account(slug: "${SLUG}") { orders(filter: INCOMING, status: [ACTIVE], limit: 1000, offset: ${offset}) { totalCount nodes { status frequency amount { value } fromAccount { slug } } } } }`;
 const perMonth = (o: Order) => (o.frequency === "YEARLY" ? o.amount.value / 12 : o.amount.value);
 // Per contributor (profile slug): their active monthly/yearly contribution per month, if any,
 // and their latest paid contribution otherwise.
@@ -114,17 +118,39 @@ const contributions = (orders: Order[]) => {
   for (const o of orders) if (["PAID", "ACTIVE", "CANCELLED", "EXPIRED"].includes(o.status) && !last.has(o.fromAccount.slug)) last.set(o.fromAccount.slug, perMonth(o));
   return { recurring, last, known: orders.length > 0 };
 };
-const fetchOrders = (): Promise<Order[]> =>
-  fetch("https://api.opencollective.com/graphql/v2", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: ORDERS_QUERY }) })
+type OrdersPage = { data?: { account?: { orders?: { totalCount: number; nodes: Order[] } } } };
+const fetchOrdersPage = (offset: number) =>
+  fetch("https://api.opencollective.com/graphql/v2", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: ordersQuery(offset) }) })
     .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-    .then((res: { data: { account: { orders: { nodes: Order[] } } } }) => res.data.account.orders.nodes);
+    .then((res: OrdersPage) => res.data?.account?.orders ?? Promise.reject("no orders"));
+const fetchOrdersOnce = async (): Promise<Order[]> => {
+  const all: Order[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    const page = await fetchOrdersPage(offset);
+    all.push(...page.nodes);
+    if (all.length >= page.totalCount || page.nodes.length === 0) return all;
+  }
+};
+// Retried a few times (Open Collective limits frequent requests): a failure must not be
+// taken for "nobody gives monthly", which would send everyone below.
+const fetchOrders = async (): Promise<Order[]> => {
+  for (let i = 0; ; i++) {
+    try {
+      return await fetchOrdersOnce();
+    } catch (e) {
+      if (i >= 3) throw e;
+      await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
+    }
+  }
+};
 
 // Members from the contributions: on the surface only with an active monthly/yearly one (its
 // amount per month sets the boat); everyone else below. Left as the member list says if the
 // contributions can't be read.
-const withContributions = (members: Member[], orders: Order[]) => {
+const withContributions = (members: Member[], orders: Order[], complete = false) => {
   const c = contributions(orders);
-  if (!c.known) return members;
+  // With a complete list of active contributions, none means nobody gives monthly.
+  if (!c.known && !complete) return members;
   return members.map((m) => {
     const slug = m.profile.split("/").pop()!;
     const monthly = c.recurring.get(slug);
@@ -134,14 +160,31 @@ const withContributions = (members: Member[], orders: Order[]) => {
   });
 };
 
+// The whole member list, page by page (Open Collective serves 1,000 at a time), up to a cap.
+const MAX_MEMBERS = 10000;
+const fetchMemberList = async (): Promise<Raw[]> => {
+  const all: Raw[] = [];
+  const stamp = Date.now();
+  for (let offset = 0; offset < MAX_MEMBERS; offset += 1000) {
+    const r = await fetch(`${MEMBERS_URL}?limit=1000&offset=${offset}&t=${stamp}`);
+    if (!r.ok) throw r.status;
+    const page: Raw[] = await r.json();
+    all.push(...page);
+    if (page.length < 1000) break;
+  }
+  return all;
+};
+
 // Starts from the bundled snapshot and swaps in the live list once it arrives. `refresh`
 // fetches it again (after someone joins), past any cache.
 export const useMembers = () => {
   const [members, setMembers] = useState(() => (PREVIEW ? [] : withContributions(toMembers(snapshot as Raw[]), ordersSnapshot as Order[])));
   const refresh = useCallback(() => {
-    const list = fetch(`${MEMBERS_URL}?t=${Date.now()}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status)));
-    Promise.all([list, fetchOrders().catch(() => [] as Order[])])
-      .then(([raw, orders]: [Raw[], Order[]]) => setMembers(withContributions(toMembers(raw), orders)))
+    const list = fetchMemberList();
+    // Both are needed to tell boats from submarines: if either fails, the current fleet stays
+    // (the bundled snapshot at first) rather than everyone turning into boats or submarines.
+    Promise.all([list, fetchOrders()])
+      .then(([raw, orders]: [Raw[], Order[]]) => setMembers(withContributions(toMembers(raw), orders, true)))
       .catch(() => {});
   }, []);
   useEffect(refresh, [refresh]);

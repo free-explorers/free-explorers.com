@@ -9,7 +9,7 @@ writeFileSync("src/data/members.snapshot.json", JSON.stringify(members, null, 2)
 console.log(`${members.length} members saved`);
 
 // The contributions too (who gives monthly/yearly now), so the first render is right.
-const q = `{ account(slug: "free-explorers") { orders(filter: INCOMING, limit: 1000) { nodes { status frequency amount { value } fromAccount { slug } } } } }`;
+const q = `{ account(slug: "free-explorers") { orders(filter: INCOMING, status: [ACTIVE], limit: 1000) { nodes { status frequency amount { value } fromAccount { slug } } } } }`;
 const orders = await (await fetch("https://api.opencollective.com/graphql/v2", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: q }) })).json();
 writeFileSync("src/data/orders.snapshot.json", JSON.stringify(orders.data.account.orders.nodes, null, 2) + "\n");
 console.log(`${orders.data.account.orders.nodes.length} contributions saved`);
