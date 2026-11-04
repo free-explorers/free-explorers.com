@@ -103,7 +103,9 @@ export const SubShape: React.FC<{ name: string; image?: string | null; uid: stri
       <circle cx={L / 2 + 2} cy={0} r={6} fill={LIGHT} stroke={BRASS} strokeWidth={2.5} />
       {/* The donor's name on the hull, and their picture in the big porthole */}
       <g className="unflip" data-cx={-L * 0.08}>
-        <text x={-L * 0.08} y={14} dy="0.36em" textAnchor="middle" fontSize={fitSize} fontWeight={800} letterSpacing={1} fill={CREAM} fontFamily={FONT}>
+        {/* rotate(0.01): an invisible tilt so the text is drawn as smooth shapes, not glyphs
+            snapped to whole pixels (which made the name hop as the submarine drifts) */}
+        <text transform={`rotate(0.01 ${-L * 0.08} 14)`} x={-L * 0.08} y={14} dy="0.36em" textAnchor="middle" fontSize={fitSize} fontWeight={800} letterSpacing={1} fill={CREAM} fontFamily={FONT}>
           {text}
         </text>
       </g>
@@ -119,7 +121,7 @@ export const SubShape: React.FC<{ name: string; image?: string | null; uid: stri
           </clipPath>
         </defs>
         <circle cx={port.cx} cy={port.cy} r={port.r} fill={GLASS} />
-        <text x={port.cx} y={port.cy} dy="0.36em" textAnchor="middle" fontSize={port.r * 0.8} fontWeight={700} fill={CREAM} fontFamily={FONT}>
+        <text transform={`rotate(0.01 ${port.cx} ${port.cy})`} x={port.cx} y={port.cy} dy="0.36em" textAnchor="middle" fontSize={port.r * 0.8} fontWeight={700} fill={CREAM} fontFamily={FONT}>
           {initialsOf(name)}
         </text>
         {image && !broken && (

@@ -168,7 +168,8 @@ const HullName: React.FC<{ name: string; x: number; y: number; size: number; max
   const squeeze = text.length * size * 0.62 > max ? { textLength: max, lengthAdjust: "spacingAndGlyphs" as const } : {};
   return (
     <g className="unflip" data-cx={x}>
-      <text x={x} y={y} dy="0.36em" textAnchor="middle" fontSize={size} fontWeight={800} letterSpacing={size * 0.06} fill={SAIL} fontFamily="Outfit, 'Helvetica Neue', Arial, sans-serif" {...squeeze}>
+      {/* rotate(0.01): drawn as smooth shapes, not glyphs snapped to whole pixels as the boat bobs */}
+      <text transform={`rotate(0.01 ${x} ${y})`} x={x} y={y} dy="0.36em" textAnchor="middle" fontSize={size} fontWeight={800} letterSpacing={size * 0.06} fill={SAIL} fontFamily="Outfit, 'Helvetica Neue', Arial, sans-serif" {...squeeze}>
         {text}
       </text>
     </g>
