@@ -21,7 +21,7 @@ const ISLAND_RISE = 700; // the lighthouse's foot above the sea, in house units
 // The island stands a little in front of the horizon, out on the sea (world units).
 export const ISLAND_DROP = 35;
 const ISLAND_WATER = WATER + ISLAND_DROP;
-const LIGHTHOUSE_HEIGHT = 560; // in world units
+const LIGHTHOUSE_HEIGHT = 620; // in world units
 const K = LIGHTHOUSE_HEIGHT / (lighthouseHeight(LH_VARIANT) * LH_SCALE);
 // The quay's far end, right of the lighthouse (house units).
 const QUAY_END = 2950;
