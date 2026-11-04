@@ -1,11 +1,11 @@
 import React from "react";
 
-// The galleon reworked, in the site's flat style (its hull, wood and cream sails, thin spars
-// and rigging), with three masts: a rear sail on the mizzen over the stern castle, the main
-// mast with a stack of square sails, and a smaller triangular sail on the foremast (and in
-// one option a jib on the bowsprit). Waterline at y 0, bow to the right.
+// The galleon reworked, in the sleek style: the site's flat look (its wood and cream sails,
+// thin spars and rigging) on a lower, sleeker hull, with two big square sails on the main
+// mast and a jib on the bowsprit; then with a rear sail over the stern castle, and with three
+// masts (a smaller triangular sail on a foremast). Waterline at y 0, bow to the right.
 
-export type GalleonOption = "three" | "two" | "jib";
+export type GalleonOption = "sleek" | "sleekRear" | "sleekThree";
 export type Galleon2Props = { option: GalleonOption; name: string; color: string; uid: string };
 
 const WOOD = "#a9744f";
@@ -19,13 +19,15 @@ const WINDOW = "#ffd66b";
 const FONT = "Outfit, 'Helvetica Neue', Arial, sans-serif";
 
 const DECK = -62;
+const CASTLE = 36; // the stern castle's height above the deck: low and sleek
 const MAST = { x: -20, h: 340 };
 const FORE = { x: 132, h: 250 };
-const MIZZEN = { x: -170, h: 200 };
+const MIZZEN = { x: -170, h: 190 };
 
+type Square = { top: number; bottom: number; topHw: number; bottomHw: number };
 // A square sail between two yards, a little narrower at the head than at the foot, barely
 // bellied, the right half in shade.
-const SquareSail: React.FC<{ top: number; bottom: number; topHw: number; bottomHw: number }> = ({ top, bottom, topHw, bottomHw }) => {
+const SquareSail: React.FC<Square> = ({ top, bottom, topHw, bottomHw }) => {
   const x = MAST.x;
   const belly = (bottom - top) * 0.08;
   const d = `M ${x - topHw} ${top} L ${x + topHw} ${top} L ${x + bottomHw} ${bottom} Q ${x} ${bottom + belly} ${x - bottomHw} ${bottom} Z`;
@@ -39,38 +41,50 @@ const SquareSail: React.FC<{ top: number; bottom: number; topHw: number; bottomH
   );
 };
 
-type Rig = { sails: { top: number; bottom: number; topHw: number; bottomHw: number }[]; jib: boolean };
-const THREE = [
-  { top: DECK - 150, bottom: DECK - 34, topHw: 84, bottomHw: 96 },
-  { top: DECK - 252, bottom: DECK - 160, topHw: 68, bottomHw: 82 },
-  { top: DECK - 326, bottom: DECK - 262, topHw: 50, bottomHw: 64 },
+// A triangular sail behind a mast: its luff on the mast, its foot on a boom.
+const fa = (x: number, head: number, foot: number, w: number) => `M ${x} ${head} L ${x} ${foot} L ${x - w} ${foot} Q ${x - w * 0.36} ${(head + foot) / 2 + 6} ${x} ${head} Z`;
+const faShade = (x: number, head: number, foot: number, w: number) =>
+  `M ${x} ${head} L ${x - w * 0.5} ${foot} L ${x - w} ${foot} Q ${x - w * 0.36} ${(head + foot) / 2 + 6} ${x} ${head} Z`;
+const FASail: React.FC<{ x: number; head: number; foot: number; w: number }> = ({ x, head, foot, w }) => (
+  <g>
+    <path d={fa(x, head, foot, w)} fill={SAIL} />
+    <path d={faShade(x, head, foot, w)} fill={SHADE} />
+    <rect x={x - w - 3} y={foot} width={w + 3} height={3.5} rx={1.5} fill={WOOD_DARK} />
+  </g>
+);
+
+type Rig = { sails: Square[]; rear: boolean; fore: boolean };
+const BIG: Square[] = [
+  { top: DECK - 170, bottom: DECK - 34, topHw: 100, bottomHw: 112 },
+  { top: DECK - 316, bottom: DECK - 182, topHw: 76, bottomHw: 94 },
+];
+// With a foremast, the square sails are a little narrower so the three sails don't crowd.
+const NARROWER: Square[] = [
+  { top: DECK - 170, bottom: DECK - 34, topHw: 90, bottomHw: 100 },
+  { top: DECK - 316, bottom: DECK - 182, topHw: 70, bottomHw: 86 },
 ];
 const RIGS: Record<GalleonOption, Rig> = {
-  three: { sails: THREE, jib: false },
-  two: {
-    sails: [
-      { top: DECK - 170, bottom: DECK - 34, topHw: 88, bottomHw: 100 },
-      { top: DECK - 316, bottom: DECK - 182, topHw: 68, bottomHw: 84 },
-    ],
-    jib: false,
-  },
-  jib: { sails: THREE, jib: true },
+  sleek: { sails: BIG, rear: false, fore: false },
+  sleekRear: { sails: BIG, rear: true, fore: false },
+  sleekThree: { sails: NARROWER, rear: true, fore: true },
 };
-const CASTLE = 54;
 
 export const Galleon2: React.FC<Galleon2Props> = ({ option, name, color, uid }) => {
   const rig = RIGS[option];
   const C = DECK - CASTLE;
   const top = DECK - MAST.h;
-  const hull = `M -238 ${C} L -118 ${C} L -118 ${DECK} L 200 ${DECK} L 246 ${DECK - 22} Q 205 40 150 44 L -160 44 Q -222 32 -238 ${C} Z`;
-  const sprit = { x: 330, y: DECK - 66 };
   const foreTop = DECK - FORE.h;
   const mizzenTop = C - MIZZEN.h;
-  // A triangular sail behind a mast: its luff on the mast, its foot on a boom.
-  const fa = (x: number, head: number, foot: number, w: number) =>
-    `M ${x} ${head} L ${x} ${foot} L ${x - w} ${foot} Q ${x - w * 0.36} ${(head + foot) / 2 + 6} ${x} ${head} Z`;
-  const faShade = (x: number, head: number, foot: number, w: number) =>
-    `M ${x} ${head} L ${x - w * 0.5} ${foot} L ${x - w} ${foot} Q ${x - w * 0.36} ${(head + foot) / 2 + 6} ${x} ${head} Z`;
+  const hull = `M -238 ${C} L -118 ${C} L -118 ${DECK} L 200 ${DECK} L 246 ${DECK - 22} Q 205 40 150 44 L -160 44 Q -222 32 -238 ${C} Z`;
+  const sprit = { x: 330, y: DECK - 66 };
+  // The forestay to the bowsprit's end (from the foremast if there is one, else the main
+  // mast); the jib is set on it.
+  const stayFrom = rig.fore ? { x: FORE.x, y: foreTop } : { x: MAST.x, y: top };
+  const stay = (t: number) => ({ x: stayFrom.x + (sprit.x - stayFrom.x) * t, y: stayFrom.y + (sprit.y - stayFrom.y) * t });
+  const jibHead = stay(rig.fore ? 0.18 : 0.3);
+  const jibTack = stay(0.97);
+  const jibClew = rig.fore ? { x: FORE.x + 34, y: DECK - 24 } : { x: 172, y: DECK - 26 };
+  const masts = [...(rig.rear ? [{ x: MIZZEN.x, top: mizzenTop, h: MIZZEN.h, w: 7, flag: 66 }] : []), { x: MAST.x, top, h: MAST.h, w: 9, flag: 90 }, ...(rig.fore ? [{ x: FORE.x, top: foreTop, h: FORE.h, w: 7, flag: 66 }] : [])];
   const text = name.toUpperCase();
   const size = 24;
   const squeeze = text.length * size * 0.62 > 300 ? { textLength: 300, lengthAdjust: "spacingAndGlyphs" as const } : {};
@@ -78,38 +92,34 @@ export const Galleon2: React.FC<Galleon2Props> = ({ option, name, color, uid }) 
     <g>
       {/* Bowsprit and stays */}
       <line x1={232} y1={DECK - 16} x2={sprit.x} y2={sprit.y} stroke={WOOD_DARK} strokeWidth={6} strokeLinecap="round" />
-      <line x1={FORE.x} y1={foreTop} x2={sprit.x} y2={sprit.y} stroke={ROPE} strokeWidth={1.5} opacity={0.8} />
-      <line x1={MAST.x} y1={top} x2={FORE.x} y2={foreTop + 20} stroke={ROPE} strokeWidth={1.5} opacity={0.8} />
-      <line x1={MIZZEN.x} y1={mizzenTop} x2={MAST.x} y2={top + 40} stroke={ROPE} strokeWidth={1.5} opacity={0.8} />
+      <line x1={stayFrom.x} y1={stayFrom.y} x2={sprit.x} y2={sprit.y} stroke={ROPE} strokeWidth={1.5} opacity={0.8} />
+      {rig.fore && <line x1={MAST.x} y1={top} x2={FORE.x} y2={foreTop + 20} stroke={ROPE} strokeWidth={1.5} opacity={0.8} />}
+      {rig.rear ? (
+        <line x1={MIZZEN.x} y1={mizzenTop} x2={MAST.x} y2={top + 40} stroke={ROPE} strokeWidth={1.5} opacity={0.8} />
+      ) : (
+        <line x1={MAST.x} y1={top} x2={-232} y2={C} stroke={ROPE} strokeWidth={1.5} opacity={0.8} />
+      )}
       {/* Shrouds on the main mast */}
-      {[-56, -34, 14, 36].map((dx) => (
+      {[-60, -36, 16, 40].map((dx) => (
         <line key={dx} x1={MAST.x + dx} y1={DECK} x2={MAST.x} y2={rig.sails[0].top - 6} stroke={ROPE} strokeWidth={1.2} opacity={0.6} />
       ))}
       {/* Masts and pennants */}
-      {[
-        { x: MIZZEN.x, top: mizzenTop, h: MIZZEN.h, w: 7 },
-        { x: MAST.x, top, h: MAST.h, w: 9 },
-        { x: FORE.x, top: foreTop, h: FORE.h, w: 7 },
-      ].map((m, i) => (
+      {masts.map((m, i) => (
         <g key={i}>
           <rect x={m.x - m.w / 2} y={m.top} width={m.w} height={m.h} rx={3} fill={WOOD_DARK} />
-          <path d={`M ${m.x + 3} ${m.top} L ${m.x + (i === 1 ? 90 : 66)} ${m.top + 8} L ${m.x + 3} ${m.top + 16} Z`} fill={color} />
+          <path d={`M ${m.x + 3} ${m.top} L ${m.x + m.flag} ${m.top + 8} L ${m.x + 3} ${m.top + 16} Z`} fill={color} />
         </g>
       ))}
-      {/* The rear sail on the mizzen, over the stern castle */}
-      <path d={fa(MIZZEN.x - 3, mizzenTop + 18, C - 14, 72)} fill={SAIL} />
-      <path d={faShade(MIZZEN.x - 3, mizzenTop + 18, C - 14, 72)} fill={SHADE} />
-      <rect x={MIZZEN.x - 3 - 75} y={C - 14} width={75} height={3.5} rx={1.5} fill={WOOD_DARK} />
+      {/* The rear sail over the stern castle */}
+      {rig.rear && <FASail x={MIZZEN.x - 3} head={mizzenTop + 18} foot={C - 14} w={68} />}
       {/* The main mast's square sails */}
       {rig.sails.map((s, i) => (
         <SquareSail key={i} {...s} />
       ))}
       {/* The smaller triangular sail on the foremast */}
-      <path d={fa(FORE.x - 3, foreTop + 16, DECK - 14, 76)} fill={SAIL} />
-      <path d={faShade(FORE.x - 3, foreTop + 16, DECK - 14, 76)} fill={SHADE} />
-      <rect x={FORE.x - 3 - 79} y={DECK - 14} width={79} height={3.5} rx={1.5} fill={WOOD_DARK} />
-      {/* A jib on the bowsprit */}
-      {rig.jib && <path d={`M ${FORE.x + 8} ${foreTop + 34} L ${sprit.x - 6} ${sprit.y + 2} L ${FORE.x + 30} ${DECK - 24} Z`} fill={SHADE} />}
+      {rig.fore && <FASail x={FORE.x - 3} head={foreTop + 16} foot={DECK - 14} w={70} />}
+      {/* The jib */}
+      <path d={`M ${jibHead.x} ${jibHead.y} L ${jibTack.x - 4} ${jibTack.y + 2} L ${jibClew.x} ${jibClew.y} Z`} fill={SHADE} />
       {/* Hull */}
       <defs>
         <clipPath id={`g2-${uid}`}>
@@ -137,7 +147,7 @@ export const Galleon2: React.FC<Galleon2Props> = ({ option, name, color, uid }) 
 };
 
 export const GALLEON_OPTIONS: { option: GalleonOption; label: string }[] = [
-  { option: "three", label: "Three masts: rear sail, three square sails on the main, a triangle on the foremast" },
-  { option: "two", label: "Three masts: rear sail, two square sails on the main, a triangle on the foremast" },
-  { option: "jib", label: "Three masts with three square sails, plus a jib on the bowsprit" },
+  { option: "sleek", label: "Sleek: two square sails and a jib, as before" },
+  { option: "sleekRear", label: "Sleek with a rear sail (two masts)" },
+  { option: "sleekThree", label: "Sleek with three masts: rear sail, two square sails, a triangle on the foremast, the jib" },
 ];
