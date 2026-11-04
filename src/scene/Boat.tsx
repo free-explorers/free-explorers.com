@@ -25,7 +25,7 @@ type Spec = { L: number; masts: Mast[]; jib: boolean };
 export const BOAT_SPEC: Record<BoatKind, Spec> = {
   // The galleon is drawn by its own component; its masts here only give its height.
   galleon: { L: 440, masts: [{ x: -10, h: 330 }], jib: true },
-  brig: { L: 300, masts: [{ x: -95, h: 190 }, { x: 30, h: 280 }], jib: true },
+  brig: { L: 300, masts: [{ x: -95, h: 200 }, { x: 30, h: 262 }], jib: true },
   sloop: { L: 205, masts: [{ x: 10, h: 220 }], jib: true },
   dinghy: { L: 130, masts: [{ x: 4, h: 140 }], jib: false },
 };
@@ -39,11 +39,46 @@ export const boatHeight = (kind: BoatKind) => {
   return kind === "galleon" ? GALLEON.deck + GALLEON.main.h + 20 : Math.max(...s.masts.map((m) => m.h)) + s.L * 0.14 + 24;
 };
 
-const Hull: React.FC<{ L: number }> = ({ L }) => {
+// The brigantine's raised stern deck (quarterdeck) height.
+const QUARTERDECK = (L: number) => -L * 0.14 * 1.45;
+
+// Each sailing boat's hull, its deck at -L * 0.14 and its bow's top near (L * 0.55, deck * 1.3)
+// where the forestay ends:
+//  dinghy      a small open boat, round-bellied, an upright transom, a stripe in its colour;
+//  sloop       a sleek yacht, low and long, a sharp overhanging bow, a raked stern, a cream
+//              boot stripe;
+//  brigantine  a deeper merchant hull with a raised stern deck, lit stern windows and a dark
+//              painted band.
+const Hull: React.FC<{ kind: Exclude<BoatKind, "galleon">; L: number; color: string }> = ({ kind, L, color }) => {
   const F = L * 0.14;
-  const D = L * 0.1;
-  const d = `M ${-L / 2} ${-F} L ${L / 2 + L * 0.05} ${-F * 1.3} Q ${L * 0.42} ${D} ${L * 0.28} ${D} L ${-L * 0.36} ${D} Q ${-L * 0.5} ${D * 0.6} ${-L / 2} ${-F} Z`;
-  const id = `hull-${L}`;
+  const id = `hull-${kind}`;
+  let d: string;
+  let rail: string;
+  let bands: React.ReactNode = null;
+  let extras: React.ReactNode = null;
+  // A band just under the rail, following its sheer (the rail rises from the stern to the bow).
+  const underRail = (x0: number, y0: number, x1: number, y1: number, gap: number, h: number) => {
+    const at = (x: number) => y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
+    return `M ${-L} ${at(-L) + gap} L ${L} ${at(L) + gap} L ${L} ${at(L) + gap + h} L ${-L} ${at(-L) + gap + h} Z`;
+  };
+  if (kind === "dinghy") {
+    const D = L * 0.13;
+    d = `M ${-L / 2} ${-F} L ${L * 0.55} ${-F * 1.3} Q ${L * 0.5} ${D * 0.8} ${L * 0.26} ${D} L ${-L * 0.28} ${D} Q ${-L * 0.46} ${D} ${-L * 0.47} ${-F * 0.15} Z`;
+    rail = `M ${-L / 2 - 1} ${-F} L ${L * 0.55 + 1} ${-F * 1.3}`;
+    bands = <path d={underRail(-L / 2, -F, L * 0.55, -F * 1.3, 2.5, F * 0.2)} fill={color} />;
+  } else if (kind === "sloop") {
+    const D = L * 0.075;
+    d = `M ${-L * 0.53} ${-F * 0.92} L ${L * 0.56} ${-F * 1.28} Q ${L * 0.46} ${-F * 0.3} ${L * 0.34} ${D * 0.5} Q ${L * 0.1} ${D} ${-L * 0.2} ${D} Q ${-L * 0.38} ${D * 0.8} ${-L * 0.45} ${0} Z`;
+    rail = `M ${-L * 0.53 - 1} ${-F * 0.92} L ${L * 0.56 + 1} ${-F * 1.28}`;
+    bands = <path d={underRail(-L * 0.53, -F * 0.92, L * 0.56, -F * 1.28, 3, Math.max(2.5, L * 0.014))} fill={SAIL} />;
+  } else {
+    const D = L * 0.11;
+    const Q = QUARTERDECK(L);
+    d = `M ${-L / 2} ${Q} L ${-L * 0.27} ${Q} L ${-L * 0.24} ${-F} L ${L * 0.55} ${-F * 1.3} Q ${L * 0.47} ${D * 0.7} ${L * 0.3} ${D} L ${-L * 0.34} ${D} Q ${-L * 0.49} ${D * 0.7} ${-L * 0.51} ${-F * 0.3} Z`;
+    rail = `M ${-L / 2 - 1} ${Q} L ${-L * 0.27} ${Q} M ${-L * 0.25} ${-F} L ${L * 0.55 + 1} ${-F * 1.3}`;
+    bands = <path d={underRail(-L * 0.24, -F, L * 0.55, -F * 1.3, 3, F * 0.18)} fill={WOOD_DARK} opacity={0.75} />;
+    extras = [0, 1].map((k) => <rect key={k} x={-L * 0.46 + k * L * 0.07} y={Q + F * 0.16} width={L * 0.04} height={F * 0.26} rx={2} fill="#ffd66b" />);
+  }
   return (
     <g>
       <defs>
@@ -54,13 +89,15 @@ const Hull: React.FC<{ L: number }> = ({ L }) => {
       <path d={d} fill={WOOD} />
       <g clipPath={`url(#${id})`}>
         {[0.3, 0.62].map((f) => (
-          <rect key={f} x={-L} y={-F + (F + D) * f} width={L * 2} height={Math.max(1.5, L * 0.012)} fill={WOOD_LINE} />
+          <rect key={f} x={-L} y={-F * 1.4 + F * 1.6 * f} width={L * 2} height={Math.max(1.5, L * 0.012)} fill={WOOD_LINE} />
         ))}
+        {bands}
         {/* The shaded bottom, under the waterline */}
-        <rect x={-L} y={-1} width={L * 2} height={D * 2} fill={WOOD_DARK} opacity={0.55} />
+        <rect x={-L} y={-1} width={L * 2} height={L * 0.3} fill={WOOD_DARK} opacity={0.55} />
       </g>
+      {extras}
       {/* Gunwale */}
-      <path d={`M ${-L / 2 - 2} ${-F} L ${L / 2 + L * 0.05 + 2} ${-F * 1.3}`} stroke={WOOD_DARK} strokeWidth={Math.max(2.5, L * 0.022)} strokeLinecap="round" />
+      <path d={rail} stroke={WOOD_DARK} strokeWidth={Math.max(2.5, L * 0.022)} strokeLinecap="round" fill="none" />
     </g>
   );
 };
@@ -237,14 +274,14 @@ const Sailboat: React.FC<ShapeProps> = ({ kind, active = true, image, name = "",
     furled = <Furled x={main.x - 3 - w} y={foot - 4} w={w} />;
     logo = <SternFlag staffX={-L / 2 + 8} deck={deck} L={L} color={color} image={image} name={name} uid={uid} />;
   } else if (kind === "sloop") {
-    // The gaff sail: luff on the mast, a gaff from the throat up to the peak, the leech down
-    // to the boom's end.
+    // The gaff sail, nearly square: luff on the mast, a gaff almost level from the throat to
+    // the peak, the leech straight down to the boom's end.
     const x0 = main.x - 3;
     const w = Math.min(L * 0.44, x0 + L / 2 - 6);
-    const throat = mainTop + 36;
-    const peak = { x: x0 - w * 0.86, y: mainTop + 8 };
-    const d = `M ${x0} ${foot} L ${x0} ${throat} L ${peak.x} ${peak.y} Q ${x0 - w * 1.02} ${(peak.y + foot) / 2} ${x0 - w} ${foot} Z`;
-    const shade = `M ${peak.x} ${peak.y} Q ${x0 - w * 1.02} ${(peak.y + foot) / 2} ${x0 - w} ${foot} L ${x0 - w * 0.42} ${foot} Z`;
+    const throat = mainTop + 18;
+    const peak = { x: x0 - w * 0.97, y: mainTop + 10 };
+    const d = `M ${x0} ${foot} L ${x0} ${throat} L ${peak.x} ${peak.y} L ${x0 - w} ${foot} Z`;
+    const shade = `M ${peak.x} ${peak.y} L ${x0 - w} ${foot} L ${x0 - w * 0.48} ${foot} L ${x0 - w * 0.45} ${(throat + peak.y) / 2} Z`;
     sails = (
       <g>
         <path d={d} fill={SAIL} />
@@ -254,26 +291,24 @@ const Sailboat: React.FC<ShapeProps> = ({ kind, active = true, image, name = "",
       </g>
     );
     furled = <Furled x={x0 - w} y={foot - 4} w={w} />;
-    const area: Box = { x: x0 - w * 0.84, y: throat + 4, w: w * 0.78, h: foot - throat - 12 };
+    const area: Box = { x: x0 - w * 0.9, y: throat + 6, w: w * 0.84, h: foot - throat - 14 };
     logo = <SailLogo sail={d} area={area} image={image} name={name} uid={uid} nameless />;
   } else {
     // Brigantine: the rear mast's triangular sail, the main mast's big square sails.
     const rear = masts[0];
     const rw = Math.min(L * 0.2, rear.x + L / 2 - 6);
-    const course = { top: deck - 142, bottom: deck - 26, topHw: 72, bottomHw: 82 };
-    const topsail = { top: deck - 264, bottom: deck - 154, topHw: 52, bottomHw: 66 };
+    const rearFoot = QUARTERDECK(L) - 12;
+    const course = { top: deck - 236, bottom: deck - 28, topHw: 68, bottomHw: 88 };
     const c = squareSail(main.x, course.top, course.bottom, course.topHw, course.bottomHw);
     sails = (
       <g>
-        <TriangleSail x={rear.x - 3} head={deck - rear.h + 8} foot={foot} w={rw} />
-        <SquareSail x={main.x} {...topsail} />
+        <TriangleSail x={rear.x - 3} head={deck - rear.h + 8} foot={rearFoot} w={rw} />
         <SquareSail x={main.x} {...course} />
       </g>
     );
     furled = (
       <g>
-        <Furled x={rear.x - 3 - rw} y={foot - 4} w={rw} />
-        <Furled x={main.x - topsail.topHw - 6} y={topsail.top} w={topsail.topHw * 2 + 12} h={10} />
+        <Furled x={rear.x - 3 - rw} y={rearFoot - 4} w={rw} />
         <Furled x={main.x - course.topHw - 6} y={course.top} w={course.topHw * 2 + 12} h={10} />
       </g>
     );
@@ -303,8 +338,8 @@ const Sailboat: React.FC<ShapeProps> = ({ kind, active = true, image, name = "",
       ) : (
         furled
       )}
-      <Hull L={L} />
-      {name && <HullName name={name} x={-L * 0.04} y={deck * 0.38} size={NAME_SIZE[kind]} max={L * 0.66} />}
+      <Hull kind={kind as Exclude<BoatKind, "galleon">} L={L} color={color} />
+      {name && <HullName name={name} x={-L * 0.04} y={deck * (kind === "sloop" ? 0.5 : kind === "dinghy" ? 0.42 : 0.4)} size={NAME_SIZE[kind]} max={L * 0.66} />}
       {active ? logo : <Avatar at={{ cx: -L * 0.2, cy: deck * 0.5, r: L * 0.055 }} color={color} image={image} name={name} uid={uid} />}
     </g>
   );
