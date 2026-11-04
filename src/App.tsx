@@ -300,7 +300,8 @@ export const App: React.FC = () => {
         inert={dived}
         aria-hidden={dived}
       >
-        <header className="title" style={{ marginTop: titleTop }}>
+        {/* The title belongs to the first page: it slides away with it */}
+        <header className="title" style={{ marginTop: titleTop, transform: `translateX(${-index * frame.w}px)`, transition: slide }}>
           <a ref={wordmark} href="#/explorers" className="wordmark">
             Free Explorers
           </a>
