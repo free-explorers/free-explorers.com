@@ -170,23 +170,27 @@ export const App: React.FC = () => {
         <rect x={0} y={BOTTOM - frame.height} width={frame.pageW} height={frame.height} fill="url(#sky)" />
         <Stars w={frame.pageW} top={BOTTOM - frame.height} />
       </svg>
-      <svg
-        className="scene"
-        viewBox={`0 ${BOTTOM - frame.height} ${frame.pageW} ${frame.height}`}
-        preserveAspectRatio="xMidYMax slice"
-        role="img"
-        aria-label="The Free Explorers lighthouse church by the sea, with a boat for every member of the collective"
+      {/* The whole sea, every page side by side, on a strip that slides along by a page
+          width: the slide is an HTML transform, which the browser composites at full
+          resolution (a CSS transform inside the SVG can come out blurred). */}
+      <div
+        className="scene-track"
+        style={{
+          width: frame.w * PAGES.length,
+          transform: `translateX(${-index * frame.w}px)`,
+          transition: resizing || reduced ? "none" : `transform ${SLIDE_MS}ms cubic-bezier(0.65, 0, 0.35, 1)`,
+        }}
       >
-        <g
-          className="camera"
-          style={{
-            transform: `translateX(${-index * frame.pageW}px)`,
-            transition: resizing || reduced ? "none" : `transform ${SLIDE_MS}ms cubic-bezier(0.65, 0, 0.35, 1)`,
-          }}
+        <svg
+          className="scene"
+          viewBox={`0 ${BOTTOM - frame.height} ${frame.pageW * PAGES.length} ${frame.height}`}
+          preserveAspectRatio="xMinYMax slice"
+          role="img"
+          aria-label="The Free Explorers lighthouse church by the sea, with a boat for every member of the collective"
         >
           <World pageW={frame.pageW} pages={PAGES.length} members={members} beamTime={beamTime} reserveRight={reserveRight} page={index} />
-        </g>
-      </svg>
+        </svg>
+      </div>
 
       <aside className="column" style={frame.narrow ? undefined : { width: columnPx }}>
         <header className="title" style={{ marginTop: titleTop }}>

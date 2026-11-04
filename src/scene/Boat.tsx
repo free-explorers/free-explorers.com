@@ -1,5 +1,6 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import { TIERS, type Member, type Tier } from "../members";
+import { Bob } from "./Motion";
 
 // A member's sailing boat, in the flat style of the teaser's house-boat: a wooden hull, cream
 // sails and a pennant in the tier's colour. The member's avatar is painted on the main sail.
@@ -187,9 +188,9 @@ export const MemberBoat: React.FC<{
         onBlur={() => onHold(false)}
       >
         <g ref={boat}>
-          <g className="bob" style={{ animationDelay: `${-delay}s` }}>
+          <Bob delay={delay}>
             <BoatShape tier={member.tier} active={member.active} image={member.image} name={member.name} uid={member.id.replace(/\W/g, "")} />
-          </g>
+          </Bob>
         </g>
         <g ref={label} className="boat-label">
           <text textAnchor="middle" className="boat-name">

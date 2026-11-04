@@ -36,66 +36,23 @@ a {
   inset: 0;
 }
 
-.sky,
-.scene {
+.sky {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   display: block;
 }
-
-/* The sea rolls: each wave band slides by one wavelength (120 units), looping. */
-.wave {
-  animation: roll 6s linear infinite;
+.scene-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
 }
-.wave-fast {
-  animation-duration: 3.6s;
-  animation-direction: reverse;
-}
-@keyframes roll {
-  to {
-    transform: translateX(120px);
-  }
-}
-.streaks {
-  animation: drift 14s ease-in-out infinite alternate;
-}
-@keyframes drift {
-  to {
-    transform: translateX(-40px);
-  }
-}
-
-/* Boats bob and rock on the swell. */
-.bob {
-  transform-box: fill-box;
-  transform-origin: 50% 85%;
-  animation: bob 5.5s ease-in-out infinite;
-}
-.bob-big {
-  animation-duration: 8s;
-}
-@keyframes bob {
-  0%,
-  100% {
-    transform: translateY(0) rotate(-1.4deg);
-  }
-  50% {
-    transform: translateY(5px) rotate(1.4deg);
-  }
-}
-.bob-big {
-  animation-name: bob-big;
-}
-@keyframes bob-big {
-  0%,
-  100% {
-    transform: translateY(0) rotate(-0.6deg);
-  }
-  50% {
-    transform: translateY(6px) rotate(0.6deg);
-  }
+.scene {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .star {
@@ -104,15 +61,6 @@ a {
 @keyframes twinkle {
   to {
     opacity: 0.1;
-  }
-}
-
-.flag {
-  animation: flutter 3s ease-in-out infinite;
-}
-@keyframes flutter {
-  50% {
-    transform: skewY(3deg);
   }
 }
 
@@ -133,7 +81,7 @@ a {
 .boat:focus-visible .boat-label {
   opacity: 1;
 }
-.boat:focus-visible .bob {
+.boat:focus-visible > g:first-child {
   filter: drop-shadow(0 0 6px var(--gold));
 }
 .boat-name,
@@ -427,11 +375,7 @@ a:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wave,
-  .streaks,
-  .bob,
-  .star,
-  .flag {
+  .star {
     animation: none;
   }
   .panel {

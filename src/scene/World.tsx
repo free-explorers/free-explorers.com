@@ -3,6 +3,7 @@ import { LAST_BEAM, Lighthouse, lighthouseFoot, lighthouseHeight, type Lighthous
 import { OutpostBack, TowerDetails } from "./Outpost";
 import { BOAT_SPEC } from "./Boat";
 import { Fleet } from "./Fleet";
+import { Bob, Flutter, Slide } from "./Motion";
 import type { Member } from "../members";
 import boatMeta from "../data/veshell-boat.json";
 
@@ -64,9 +65,9 @@ const swell = (y: number, amp: number, x0: number, x1: number, depth: number) =>
 const SeaBack: React.FC<{ x0: number; x1: number }> = ({ x0, x1 }) => (
   <g>
     <rect x={x0} y={WATER} width={x1 - x0} height={BOTTOM - WATER + 400} fill="url(#sea)" />
-    <g className="wave wave-slow">
+    <Slide dx={WAVE_LEN} dur={6}>
       <path d={swell(WATER, 3, x0 - WAVE_LEN, x1, 30)} fill="#0b6a8a" />
-    </g>
+    </Slide>
   </g>
 );
 
@@ -85,18 +86,18 @@ const Streaks: React.FC<{ x0: number; x1: number }> = ({ x0, x1 }) => {
     return out;
   }, [x0, x1]);
   return (
-    <g className="streaks">
+    <Slide dx={-40} dur={28} loop={false}>
       {rows.map((r, i) => (
         <rect key={i} x={r.x} y={r.y} width={r.w} height={2.2} rx={1.1} fill="#cfe9f2" opacity={r.o} />
       ))}
-    </g>
+    </Slide>
   );
 };
 
 const SeaFront: React.FC<{ x0: number; x1: number }> = ({ x0, x1 }) => (
-  <g className="wave wave-fast" opacity={0.85}>
+  <Slide dx={-WAVE_LEN} dur={3.6} opacity={0.85}>
     <path d={swell(BOTTOM - 22, 5, x0 - WAVE_LEN, x1, 400)} fill="#05384a" />
-  </g>
+  </Slide>
 );
 
 // Where each member's boat goes: active explorers in three rows, the biggest boats in
@@ -174,9 +175,9 @@ const VeshellBoat: React.FC<{ cx: number; maxWidth: number }> = ({ cx, maxWidth 
   const x = cx - (mid - boatMeta.x) * s;
   const y = WATER + 14 - (boatMeta.water - boatMeta.y) * s;
   return (
-    <g className="bob bob-big">
+    <Bob dur={8} dy={6} deg={0.6} cx={x + w / 2} cy={WATER + 14}>
       <image href={`${import.meta.env.BASE_URL}veshell-boat.svg`} x={x} y={y} width={w} height={VESHELL_HEIGHT} />
-    </g>
+    </Bob>
   );
 };
 
@@ -208,14 +209,14 @@ const Jetty: React.FC<{ x: number; architects: { name: string; image: string; ur
           <a key={a.name} href={a.url} target="_blank" rel="noreferrer" className="boat" aria-label={a.name}>
             <rect x={fx - 4} y={top} width={8} height={deck - top} fill="#5a3522" />
             <circle cx={fx} cy={top - 4} r={7} fill="#f9c46b" />
-            <g className="flag" style={{ transformOrigin: `${fx}px ${top + 10}px` }}>
+            <Flutter x={fx} y={top + 10}>
               <path d={`M ${fx + 4} ${top + 8} L ${fx + 150} ${top + 14} L ${fx + 146} ${top + 112} L ${fx + 4} ${top + 106} Z`} fill="#f4f1ea" />
               <clipPath id={`arch-${i}`}>
                 <circle cx={fx + 76} cy={top + 60} r={38} />
               </clipPath>
               <circle cx={fx + 76} cy={top + 60} r={42} fill="#006888" />
               <image href={a.image} x={fx + 38} y={top + 22} width={76} height={76} clipPath={`url(#arch-${i})`} />
-            </g>
+            </Flutter>
             <g className="boat-label" transform={`translate(${fx + 76} ${top - 26})`}>
               <text textAnchor="middle" className="boat-name">
                 {a.name}
@@ -264,9 +265,9 @@ export const World: React.FC<{
       <Fleet slots={fleet} seaW={pageW * pages} page={page} pageW={pageW} splitY={ISLAND_WATER}>
         {/* Page 1: the lighthouse on its island, and the water lapping at its foot */}
         <Island x={islandX(pageW)} time={beamTime} />
-        <g className="wave wave-slow">
+        <Slide dx={WAVE_LEN} dur={6}>
           <path d={swell(ISLAND_WATER + 4, 3, x0 - WAVE_LEN, islandRight(pageW) + 80, 40)} fill="url(#sea)" />
-        </g>
+        </Slide>
         {/* Page 2: Veshell */}
         <VeshellBoat cx={pageW + Math.min(Math.max(usable * 0.5, 420), pageW / 2)} maxWidth={Math.min(usable, pageW) * 0.92} />
         {/* Page 3: the Architects' jetty */}
