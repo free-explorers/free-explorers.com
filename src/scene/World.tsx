@@ -117,6 +117,7 @@ const hash = (s: string) => {
 };
 // Former explorers on the horizon: the biggest ones, so a big collective's sea isn't cluttered.
 const MAX_FORMER = 40;
+const KIND_ORDER: Record<BoatKind, number> = { dinghy: 0, sloop: 1, brig: 2, galleon: 3 };
 export const layoutFleet = (members: Member[], pageW: number, reserveRight: number, pages = 1): Slot[] => {
   const left = 30;
   const active = members.filter((m) => m.active);
@@ -128,7 +129,10 @@ export const layoutFleet = (members: Member[], pageW: number, reserveRight: numb
     const slots: Slot[] = [];
     // Over the whole sea, boats of every size are mixed (stable order), so each page gets
     // its share of big and small ones.
-    const queue = right > pageW ? [...active].sort((m, n) => hash(m.id + "o") - hash(n.id + "o")) : [...active];
+    // Smaller boats tend to fill the front rows and the big ones the back, with a nudge per
+    // boat so it's a tendency rather than a rule.
+    const depth = (m: Member) => KIND_ORDER[m.boat] + (hash(m.id + "o") - 0.5) * 1.6;
+    const queue = [...active].sort((m, n) => depth(m) - depth(n));
     ROWS.forEach((row, r) => {
       const s = row.scale * shrink;
       const placed: Member[] = [];

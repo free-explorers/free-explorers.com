@@ -1,7 +1,7 @@
 import React, { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { MemberBoat, type BoatParts, boatLength, KIND_SCALE } from "./Boat";
 import type { Slot } from "./World";
-import { sizeWithin } from "../members";
+import { sizeWithin, type BoatKind } from "../members";
 
 // The explorers' boats sailing the whole sea, across every page: each one holds a heading
 // (left or right) at its own slow speed and drifts between lanes, nearer or further out
@@ -27,7 +27,17 @@ const depthScale = (y: number) => {
   return DEPTH[DEPTH.length - 1][1];
 };
 // Lanes: active explorers anywhere on the open sea, former explorers out on the horizon.
-const ACTIVE_LANES = [770, 955];
+// Where each boat type tends to sail: the bigger the boat, the further back, the smaller ones
+// in the foreground. A tendency, not a rule: the bands overlap widely, a boat's lane leans
+// towards its band's usual depth, and now and then a boat wanders anywhere on the open sea.
+const OPEN_SEA: [number, number] = [770, 955];
+const KIND_LANES: Record<BoatKind, [number, number]> = {
+  galleon: [770, 880],
+  brig: [785, 915],
+  sloop: [815, 945],
+  dinghy: [845, 955],
+};
+const WANDER = 0.2;
 const HORIZON_LANES = [722, 742];
 const SPEED = 16; // world units per second, at full scale
 const LANE_SPEED = 5; // world units per second towards the new lane
@@ -40,6 +50,8 @@ type Sim = {
   dir: 1 | -1;
   speed: number;
   lane: number;
+  // The band of lanes this boat keeps to (by its type).
+  lanes: [number, number];
   nextChange: number;
   shrink: number;
   half: number;
@@ -48,7 +60,12 @@ type Sim = {
 };
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
-const pickLane = (former: boolean) => (former ? rand(HORIZON_LANES[0], HORIZON_LANES[1]) : rand(ACTIVE_LANES[0], ACTIVE_LANES[1]));
+const pickLane = (sim: { former: boolean; lanes: [number, number] }) => {
+  if (sim.former) return rand(HORIZON_LANES[0], HORIZON_LANES[1]);
+  if (Math.random() < WANDER) return rand(OPEN_SEA[0], OPEN_SEA[1]);
+  // Two draws averaged: leaning towards the middle of the band.
+  return (rand(sim.lanes[0], sim.lanes[1]) + rand(sim.lanes[0], sim.lanes[1])) / 2;
+};
 
 // `seaW` is the whole sea's width (every page); `page` the page in view, `pageW` its width.
 // Boats further out than `splitY` are drawn behind `children` (the scenery), the others in
@@ -76,11 +93,14 @@ export const Fleet: React.FC<{ slots: Slot[]; seaW: number; page: number; pageW:
       // The layout's scale, times the boat's size within its kind (from its amount).
       const shrink = s.shrink * sizeWithin(s.member.amount) * KIND_SCALE[s.member.boat];
       const dir: 1 | -1 = Math.random() < 0.5 ? 1 : -1;
+      const lanes = KIND_LANES[s.member.boat];
+      // Start in the boat's own band (former explorers stay on the horizon).
+      const start = s.member.active ? Math.min(lanes[1], Math.max(lanes[0], s.y)) : s.y;
       next.set(
         s.member.id,
         prev
-          ? { ...prev, shrink, half }
-          : { x: s.x, y: s.y, dir, speed: rand(0.6, 1.3), lane: s.y, nextChange: now + rand(4, 16), shrink, half, former: !s.member.active, held: false },
+          ? { ...prev, shrink, half, lanes }
+          : { x: s.x, y: start, dir, speed: rand(0.6, 1.3), lane: start, lanes, nextChange: now + rand(4, 16), shrink, half, former: !s.member.active, held: false },
       );
     }
     sims.current = next;
@@ -156,7 +176,7 @@ export const Fleet: React.FC<{ slots: Slot[]; seaW: number; page: number; pageW:
           // Now and then, a new lane, and (out of sight only) maybe a new heading.
           if (now >= sim.nextChange) {
             if (hidden && Math.random() < 0.5) sim.dir = sim.dir === 1 ? -1 : 1;
-            sim.lane = pickLane(sim.former);
+            sim.lane = pickLane(sim);
             sim.speed = rand(0.6, 1.3);
             sim.nextChange = now + rand(10, 28);
           }
@@ -168,7 +188,7 @@ export const Fleet: React.FC<{ slots: Slot[]; seaW: number; page: number; pageW:
             const dx = other.x - sim.x;
             const reach = (sim.half + other.half) * s * 1.15;
             if (Math.abs(other.y - sim.y) < 28 && Math.abs(dx) < reach && dx * sim.dir > 0) {
-              const [a, b] = sim.former ? HORIZON_LANES : ACTIVE_LANES;
+              const [a, b] = sim.former ? HORIZON_LANES : OPEN_SEA;
               const away = sim.y >= other.y ? 1 : -1;
               const target = sim.y + away * 48;
               sim.lane = target >= a && target <= b ? target : sim.y - away * 48;
