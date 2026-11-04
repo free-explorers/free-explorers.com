@@ -747,51 +747,39 @@ a:focus-visible {
   text-rendering: geometricPrecision;
 }
 
-/* Under the sea, the column fades away and only a depth gauge shows at the top. */
-.column {
-  transition: opacity 0.5s;
+.dive[hidden] {
+  display: none;
 }
-.column-hidden {
-  opacity: 0;
-  pointer-events: none;
+
+/* Under the sea, the dive button sits at the top as the depth gauge, with its Surface arrow. */
+.dive {
+  transition-property: bottom, padding, transform;
+  transition-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
 }
-.column-hidden > * {
-  pointer-events: none;
+.dive-under {
+  bottom: calc(100% - 84px - env(safe-area-inset-top, 0px));
+  padding: 8px 20px 8px 14px;
 }
-.depth-gauge {
-  position: fixed;
-  top: calc(28px + env(safe-area-inset-top, 0px));
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
+.dive-depth {
+  display: inline-flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px 26px 12px;
-  border-radius: 18px;
-  background: rgba(10, 34, 45, 0.6);
-  box-shadow: inset 0 0 0 2px #d9a441;
-  backdrop-filter: blur(6px);
-  color: var(--ink);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.5s;
-  z-index: 2;
-}
-.depth-gauge-on {
-  opacity: 1;
+  line-height: 1.05;
 }
 .depth-label {
-  font-size: 13px;
+  font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: #d9a441;
 }
 .depth-value {
-  font-size: 34px;
+  font-size: 24px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  line-height: 1.1;
 }
-.dive[hidden] {
-  display: none;
+.dive-surface {
+  padding-left: 10px;
+  margin-left: 2px;
+  border-left: 1px solid rgba(217, 164, 65, 0.5);
+  font-size: 14px;
 }

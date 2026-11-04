@@ -168,6 +168,10 @@ export const App: React.FC = () => {
     return () => clearTimeout(t);
   }, [frame.pageW]);
 
+  // How far the camera goes down when diving, in px, and the slide's timing (shared by the scene
+  // and the column, which scrolls up with it).
+  const diveY = dived ? Math.round((frame.height - (BOTTOM - DIVE_TOP)) * frame.unit) : 0;
+  const slide = resizing || reduced ? "none" : `transform ${SLIDE_MS}ms cubic-bezier(0.65, 0, 0.35, 1)`;
   // The text column's width, in world units, so the scene keeps clear of it.
   const columnPx = frame.narrow ? 0 : Math.min(440, frame.w * 0.34);
   // The title sits in the middle of the lighthouse's beam: its centre on the beam's centre
@@ -215,8 +219,8 @@ export const App: React.FC = () => {
         style={{
           width: frame.w * PAGES.length,
           height: (frame.height * 2 - (BOTTOM - DIVE_TOP)) * frame.unit,
-          transform: `translate(${-index * frame.w}px, ${dived ? -Math.round((frame.height - (BOTTOM - DIVE_TOP)) * frame.unit) : 0}px)`,
-          transition: resizing || reduced ? "none" : `transform ${SLIDE_MS}ms cubic-bezier(0.65, 0, 0.35, 1)`,
+          transform: `translate(${-index * frame.w}px, ${-diveY}px)`,
+          transition: slide,
         }}
       >
         <svg
@@ -240,25 +244,37 @@ export const App: React.FC = () => {
         </svg>
       </div>
       {/* Dive under the sea, or surface: a porthole button at the bottom */}
-      {/* Under the sea, only a depth gauge at the top */}
-      <div className={`depth-gauge${dived ? " depth-gauge-on" : ""}`} aria-hidden={!dived}>
-        <span className="depth-label">Depth</span>
-        <span className="depth-value">{depth} m</span>
-      </div>
+      {/* Dive: a button at the bottom that, as the camera dives, travels to the top of the screen
+          and morphs into the depth gauge with a Surface arrow */}
       <button
         type="button"
-        className={`dive${dived ? " dive-up" : ""}`}
+        className={`dive${dived ? " dive-under" : ""}`}
         hidden={page !== "explorers"}
         onClick={() => setDived((d) => !d)}
-        aria-label={dived ? "Surface" : "Dive under the sea"}
+        aria-label={dived ? `Depth ${depth} metres. Surface` : "Dive under the sea"}
+        style={{ transitionDuration: reduced ? "0s" : `${SLIDE_MS}ms` }}
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d={dived ? "M12 19V5M6 11l6-6 6 6" : "M12 5v14M6 13l6 6 6-6"} />
         </svg>
-        <span>{dived ? "Surface" : `Dive · ${below} below`}</span>
+        {dived || depth > 0 ? (
+          <span className="dive-depth">
+            <span className="depth-label">Depth</span>
+            <span className="depth-value">{depth} m</span>
+          </span>
+        ) : (
+          <span>{`Dive · ${below} below`}</span>
+        )}
+        {dived && <span className="dive-surface">Surface</span>}
       </button>
 
-      <aside className={`column${dived ? " column-hidden" : ""}`} style={frame.narrow ? undefined : { width: columnPx }} inert={dived} aria-hidden={dived}>
+      {/* The column scrolls up with the scene as the camera dives (its footer stays put) */}
+      <aside
+        className="column"
+        style={{ ...(frame.narrow ? {} : { width: columnPx }), transform: `translateY(${-diveY}px)`, transition: slide }}
+        inert={dived}
+        aria-hidden={dived}
+      >
         <header className="title" style={{ marginTop: titleTop }}>
           <a ref={wordmark} href="#/explorers" className="wordmark">
             Free Explorers
@@ -317,7 +333,7 @@ export const App: React.FC = () => {
             </p>
           </Panel>
         </div>
-        <footer className="links">
+        <footer className="links" style={{ transform: `translateY(${diveY}px)`, transition: slide }}>
           {LINKS.map((l) => (
             <a key={l.href} href={l.href} target="_blank" rel="noreferrer">
               {l.label}
