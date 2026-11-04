@@ -221,46 +221,6 @@ const TriangleSail: React.FC<{ x: number; head: number; foot: number; w: number 
 // A sail furled along its boom or yard.
 const Furled: React.FC<{ x: number; y: number; w: number; h?: number }> = ({ x, y, w, h = 8 }) => <rect x={x} y={y - h / 2} width={w} height={h} rx={h / 2} fill={SAIL_SHADE} />;
 
-// A flag on a staff at the stern, flying aft, the logo as its cloth (cream through its
-// transparent parts); without a logo, the boat's colour with the donor's initials.
-const SternFlag: React.FC<{ staffX: number; deck: number; L: number; color: string; image?: string | null; name: string; uid: string }> = ({ staffX, deck, L, color, image, name, uid }) => {
-  const [broken, setBroken] = useState(false);
-  const top = { x: staffX - L * 0.06, y: deck - L * 0.5 };
-  const w = L * 0.3;
-  const h = L * 0.26;
-  const a = h * 0.09;
-  const x = top.x;
-  const y = top.y;
-  const d = `M ${x} ${y} C ${x - w * 0.33} ${y - a} ${x - w * 0.66} ${y + a} ${x - w} ${y} L ${x - w} ${y + h} C ${x - w * 0.66} ${y + h + a} ${x - w * 0.33} ${y + h - a} ${x} ${y + h} Z`;
-  const logo = image && !broken;
-  return (
-    <g>
-      <line x1={staffX} y1={deck} x2={top.x} y2={top.y - 2} stroke={WOOD_DARK} strokeWidth={Math.max(2.5, L * 0.018)} strokeLinecap="round" />
-      <defs>
-        <clipPath id={`stern-flag-${uid}`}>
-          <path d={d} />
-        </clipPath>
-      </defs>
-      <path d={d} fill={logo ? SAIL : color} />
-      <g clipPath={`url(#stern-flag-${uid})`}>
-        <g className="unflip" data-cx={x - w / 2}>
-          {logo ? (
-            <image href={image} x={x - w} y={y - a} width={w} height={h + a * 2} preserveAspectRatio="xMidYMid slice" onError={() => setBroken(true)} />
-          ) : (
-            <text x={x - w / 2} y={y + h / 2} dy="0.36em" textAnchor="middle" fontSize={h * 0.46} fontWeight={800} fill={SAIL} fontFamily="Outfit, 'Helvetica Neue', Arial, sans-serif">
-              {initialsOf(name)}
-            </text>
-          )}
-        </g>
-        {/* Folds in the cloth, and the hem along the staff */}
-        <rect x={x - w * 0.62} y={y - a} width={w * 0.14} height={h + a * 2} fill="#000" opacity={0.1} />
-        <rect x={x - w * 0.3} y={y - a} width={w * 0.1} height={h + a * 2} fill="#fff" opacity={0.12} />
-        <rect x={x - w * 0.06} y={y - a} width={w * 0.06} height={h + a * 2} fill={SAIL_SHADE} />
-      </g>
-    </g>
-  );
-};
-
 const Sailboat: React.FC<ShapeProps> = ({ kind, active = true, image, name = "", uid }) => {
   const { L, masts } = BOAT_SPEC[kind];
   const color = boatInfo(kind).color;
@@ -283,7 +243,11 @@ const Sailboat: React.FC<ShapeProps> = ({ kind, active = true, image, name = "",
     const w = Math.min(L * 0.4, main.x + L / 2 - 6);
     sails = <TriangleSail x={main.x - 3} head={mainTop + 8} foot={foot} w={w} />;
     furled = <Furled x={main.x - 3 - w} y={foot - 4} w={w} />;
-    logo = <SternFlag staffX={-L / 2 + 8} deck={deck} L={L} color={color} image={image} name={name} uid={uid} />;
+    // The avatar in the circle that fits the main sail.
+    const head = mainTop + 8;
+    const a = foot - head;
+    const r = (a + w - Math.hypot(a, w)) / 2;
+    logo = <Avatar at={{ cx: main.x - 3 - r * 0.98, cy: foot - r * 1.02, r: r * 0.8 }} color={color} image={image} name={name} uid={uid} />;
   } else if (kind === "sloop") {
     // The gaff sail, nearly square: luff on the mast, a gaff almost level from the throat to
     // the peak, the leech straight down to the boom's end.
@@ -303,15 +267,14 @@ const Sailboat: React.FC<ShapeProps> = ({ kind, active = true, image, name = "",
     );
     furled = <Furled x={x0 - w} y={foot - 4} w={w} />;
     // The logo smaller than the brigantine's: about 60% of the sail, centred.
-    const area: Box = { x: x0 - w * 0.8, y: throat + (foot - throat) * 0.2, w: w * 0.62, h: (foot - throat) * 0.6 };
-    logo = <SailLogo sail={d} area={area} image={image} name={name} uid={uid} nameless />;
+    // The avatar in the middle of the sail, smaller than the brigantine's.
+    logo = <Avatar at={{ cx: x0 - w * 0.5, cy: (throat + foot) / 2 + 2, r: Math.min(w, foot - throat) * 0.28 }} color={color} image={image} name={name} uid={uid} />;
   } else {
     // Brigantine: the rear mast's triangular sail, the main mast's big square sails.
     const rear = masts[0];
     const rw = Math.min(L * 0.2, rear.x + L / 2 - 6);
     const rearFoot = QUARTERDECK(L) - 12;
     const course = { top: deck - 172, bottom: deck - 28, topHw: 74, bottomHw: 86 };
-    const c = squareSail(main.x, course.top, course.bottom, course.topHw, course.bottomHw);
     sails = (
       <g>
         <TriangleSail x={rear.x - 3} head={deck - rear.h + 8} foot={rearFoot} w={rw} />
@@ -324,8 +287,8 @@ const Sailboat: React.FC<ShapeProps> = ({ kind, active = true, image, name = "",
         <Furled x={main.x - course.topHw - 6} y={course.top} w={course.topHw * 2 + 12} h={10} />
       </g>
     );
-    const area: Box = { x: main.x - course.topHw * 0.86, y: course.top + 8, w: course.topHw * 1.72, h: course.bottom - course.top - 12 };
-    logo = <SailLogo sail={c.d} area={area} image={image} name={name} uid={uid} nameless />;
+    // The avatar big in the middle of the square sail.
+    logo = <Avatar at={{ cx: main.x, cy: (course.top + course.bottom) / 2 + 4, r: Math.min(course.topHw * 2, course.bottom - course.top) * 0.36 }} color={color} image={image} name={name} uid={uid} />;
   }
 
   return (
