@@ -86,7 +86,7 @@ export const BoatLab: React.FC = () => (
       <div className="lab-cells lab-cells-big">
         <Cell kind="galleon" label="Current" current frame={G2_FRAME}>
           <Bob deg={0.8}>
-            <BoatShape kind="galleon" name="Acme Corp" uid="g2-current" />
+            <BoatShape kind="galleon" name="Acme Corp" image={ACME} uid="g2-current" />
           </Bob>
         </Cell>
         {GALLEON_OPTIONS.map((o, i) => (

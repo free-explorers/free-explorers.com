@@ -199,6 +199,52 @@ const GALLEON_SAILS = [
   { top: -GALLEON.deck - 316, bottom: -GALLEON.deck - 182, topHw: 76, bottomHw: 94 },
 ];
 
+// The sponsor's logo printed whole across the main course (fitted, never cropped); their name
+// painted there if they have no logo, or a "YOUR LOGO" placeholder when there's no sponsor
+// yet (the join panel's preview). Kept readable when the galleon sails left (data-cx).
+const SailLogo: React.FC<{ sail: string; area: { x: number; y: number; w: number; h: number }; image?: string | null; name: string; uid: string }> = ({ sail, area, image, name, uid }) => {
+  const [broken, setBroken] = useState(false);
+  const cx = area.x + area.w / 2;
+  const cy = area.y + area.h / 2;
+  const text = name.toUpperCase();
+  const size = 30;
+  return (
+    <g className="unflip" data-cx={cx}>
+      <defs>
+        <clipPath id={`sail-logo-${uid}`}>
+          <path d={sail} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#sail-logo-${uid})`}>
+        {image && !broken ? (
+          <image href={image} x={area.x} y={area.y} width={area.w} height={area.h} preserveAspectRatio="xMidYMid meet" onError={() => setBroken(true)} />
+        ) : name ? (
+          <text
+            x={cx}
+            y={cy}
+            dy="0.36em"
+            textAnchor="middle"
+            fontSize={size}
+            fontWeight={800}
+            fill={WOOD_DARK}
+            fontFamily="Outfit, 'Helvetica Neue', Arial, sans-serif"
+            {...(text.length * size * 0.62 > area.w ? { textLength: area.w, lengthAdjust: "spacingAndGlyphs" as const } : {})}
+          >
+            {text}
+          </text>
+        ) : (
+          <g>
+            <rect x={area.x + 10} y={area.y + 10} width={area.w - 20} height={area.h - 20} rx={10} fill="none" stroke={WOOD_LINE} strokeWidth={3} strokeDasharray="10 8" />
+            <text x={cx} y={cy} dy="0.36em" textAnchor="middle" fontSize={24} fontWeight={800} fill={WOOD_LINE} fontFamily="Outfit, 'Helvetica Neue', Arial, sans-serif">
+              YOUR LOGO
+            </text>
+          </g>
+        )}
+      </g>
+    </g>
+  );
+};
+
 const Galleon: React.FC<ShapeProps> = ({ active: sailing = true, image, name = "", uid, forSale = false }) => {
   const active = sailing && !forSale;
   const color = boatInfo("galleon").color;
@@ -214,7 +260,11 @@ const Galleon: React.FC<ShapeProps> = ({ active: sailing = true, image, name = "
   const jibHead = stay(0.3);
   const jibTack = stay(0.97);
   const course = GALLEON_SAILS[0];
-  const avatarAt = active ? { cx: main.x, cy: (course.top + course.bottom) / 2 + 2, r: 40 } : { cx: -190, cy: C + 30, r: 13 };
+  // Former sponsors (sails furled): a small avatar on the stern castle.
+  const avatarAt = { cx: -190, cy: C + 30, r: 13 };
+  const belly = (course.bottom - course.top) * 0.08;
+  const courseSail = `M ${main.x - course.topHw} ${course.top} L ${main.x + course.topHw} ${course.top} L ${main.x + course.bottomHw} ${course.bottom} Q ${main.x} ${course.bottom + belly} ${main.x - course.bottomHw} ${course.bottom} Z`;
+  const logoArea = { x: main.x - course.topHw * 0.88, y: course.top + 12, w: course.topHw * 1.76, h: course.bottom - course.top - 18 };
   return (
     <g>
       {/* Bowsprit and stays */}
@@ -294,6 +344,8 @@ const Galleon: React.FC<ShapeProps> = ({ active: sailing = true, image, name = "
             FOR SALE
           </text>
         </g>
+      ) : active ? (
+        <SailLogo sail={courseSail} area={logoArea} image={image} name={name} uid={uid} />
       ) : (
         <Avatar at={avatarAt} color={color} image={image} name={name} uid={uid} />
       )}
