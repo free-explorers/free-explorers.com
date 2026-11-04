@@ -112,10 +112,10 @@ export const useMembers = () => {
   return { members, refresh };
 };
 
-// The join slider's amounts: $1 steps to 10, $5 to 30, $10 to 100, $50 to 450, then $500
-// steps to 5,000 (enterprise sponsors).
+// The join slider's amounts: $1 steps to 5, then 10, $5 steps to 30, $10 to 100, $50 to
+// 450, then $500 steps to 5,000 (enterprise sponsors).
 const range = (from: number, to: number, step: number) => Array.from({ length: Math.floor((to - from) / step) + 1 }, (_, i) => from + i * step);
-export const AMOUNTS = [...range(1, 10, 1), ...range(15, 30, 5), ...range(40, 100, 10), ...range(150, 450, 50), ...range(500, 5000, 500)];
+export const AMOUNTS = [...range(1, 5, 1), 10, ...range(15, 30, 5), ...range(40, 100, 10), ...range(150, 450, 50), ...range(500, 5000, 500)];
 
 export type Frequency = "month" | "year" | "once";
 export const FREQUENCIES: { id: Frequency; label: string }[] = [
