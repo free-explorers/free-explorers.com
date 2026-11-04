@@ -50,7 +50,10 @@ const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const pickLane = (former: boolean) => (former ? rand(HORIZON_LANES[0], HORIZON_LANES[1]) : rand(ACTIVE_LANES[0], ACTIVE_LANES[1]));
 
 // `seaW` is the whole sea's width (every page); `page` the page in view, `pageW` its width.
-export const Fleet: React.FC<{ slots: Slot[]; seaW: number; page: number; pageW: number }> = memo(({ slots, seaW, page, pageW }) => {
+// Boats further out than `splitY` are drawn behind `children` (the scenery), the others in
+// front of it.
+export const Fleet: React.FC<{ slots: Slot[]; seaW: number; page: number; pageW: number; splitY: number; children?: React.ReactNode }> = memo(
+  ({ slots, seaW, page, pageW, splitY, children }) => {
   const sims = useRef(new Map<string, Sim>());
   const parts = useRef(new Map<string, BoatParts>());
   const bounds = useRef({ seaW, pageW });
@@ -186,14 +189,20 @@ export const Fleet: React.FC<{ slots: Slot[]; seaW: number; page: number; pageW:
   }, []);
 
   const byId = new Map(slots.map((s) => [s.member.id, s]));
+  const boats = (behind: boolean) =>
+    order.map((id) => {
+      const s = byId.get(id);
+      const sim = sims.current.get(id);
+      if (!s || (sim ? sim.y : s.y) < splitY !== behind) return null;
+      const c = cb(id);
+      return <MemberBoat key={id} member={s.member} delay={s.delay} parts={c.parts} onHold={c.hold} />;
+    });
   return (
-    <g>
-      {order.map((id) => {
-        const s = byId.get(id);
-        if (!s) return null;
-        const c = cb(id);
-        return <MemberBoat key={id} member={s.member} delay={s.delay} parts={c.parts} onHold={c.hold} />;
-      })}
-    </g>
+    <>
+      <g>{boats(true)}</g>
+      {children}
+      <g>{boats(false)}</g>
+    </>
   );
-});
+  },
+);

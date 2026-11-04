@@ -17,6 +17,9 @@ export const BOTTOM = 1000;
 const LH_VARIANT: LighthouseVariant = "K";
 const LH_SCALE = (13 * lighthouseHeight("H")) / lighthouseHeight(LH_VARIANT);
 const ISLAND_RISE = 700; // the lighthouse's foot above the sea, in house units
+// The island stands a little in front of the horizon, out on the sea (world units).
+export const ISLAND_DROP = 70;
+const ISLAND_WATER = WATER + ISLAND_DROP;
 const LIGHTHOUSE_HEIGHT = 560; // in world units
 const K = LIGHTHOUSE_HEIGHT / (lighthouseHeight(LH_VARIANT) * LH_SCALE);
 // The quay's far end, right of the lighthouse (house units).
@@ -28,7 +31,7 @@ export const islandX = (pageW: number) => Math.min(200, pageW * 0.2);
 export const beamY = (x: number, pageW: number) => {
   const toWorld = (lx: number, ly: number) => ({
     x: islandX(pageW) + (lx - 116) * LH_SCALE * K,
-    y: WATER + ((ly - lighthouseFoot(LH_VARIANT)) * LH_SCALE - ISLAND_RISE) * K,
+    y: ISLAND_WATER + ((ly - lighthouseFoot(LH_VARIANT)) * LH_SCALE - ISLAND_RISE) * K,
   });
   const p = toWorld(LAST_BEAM.x, LAST_BEAM.y);
   return p.y + ((x - p.x) * LAST_BEAM.dy) / LAST_BEAM.dx;
@@ -36,7 +39,7 @@ export const beamY = (x: number, pageW: number) => {
 export const islandRight = (pageW: number) => islandX(pageW) + QUAY_END * K;
 
 const Island: React.FC<{ x: number; time: number }> = ({ x, time }) => (
-  <g transform={`translate(${x} ${WATER}) scale(${K}) translate(0 ${-ISLAND_RISE})`}>
+  <g transform={`translate(${x} ${ISLAND_WATER}) scale(${K}) translate(0 ${-ISLAND_RISE})`}>
     <OutpostBack x={0} foot={0} water={ISLAND_RISE} lit={1} />
     <g transform={`scale(${LH_SCALE}) translate(-116 ${-lighthouseFoot(LH_VARIANT)})`}>
       <Lighthouse hole="#123a4a" beams={1} time={time} variant={LH_VARIANT} tower={{ stone: "#c9c2b5", line: "#a9a193", trim: "#1f2c36", door: "#6a432c", lit: 1 }} />
@@ -244,7 +247,7 @@ export const World: React.FC<{
   return (
     <g>
       <defs>
-        <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+        <linearGradient id="sea" x1="0" y1={WATER} x2="0" y2={BOTTOM + 400} gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#0b5f7c" />
           <stop offset="0.45" stopColor="#063f53" />
           <stop offset="1" stopColor="#042c3a" />
@@ -256,14 +259,19 @@ export const World: React.FC<{
       </defs>
       <SeaBack x0={x0} x1={x1} />
       <Streaks x0={x0} x1={x1} />
-      {/* Page 1: the lighthouse and the fleet of explorers */}
-      <Island x={islandX(pageW)} time={beamTime} />
-      {/* Page 2: Veshell */}
-      <VeshellBoat cx={pageW + Math.min(Math.max(usable * 0.5, 420), pageW / 2)} maxWidth={Math.min(usable, pageW) * 0.92} />
-      {/* Page 3: the Architects' jetty */}
-      <Jetty x={pageW * 2 + Math.max(60, usable * 0.5 - 300)} architects={ARCHITECTS} />
-      {/* The explorers' boats, sailing across every page */}
-      <Fleet slots={fleet} seaW={pageW * pages} page={page} pageW={pageW} />
+      {/* The explorers' boats, sailing across every page: those further out than the
+          island's foot pass behind the scenery, the others in front of it */}
+      <Fleet slots={fleet} seaW={pageW * pages} page={page} pageW={pageW} splitY={ISLAND_WATER}>
+        {/* Page 1: the lighthouse on its island, and the water lapping at its foot */}
+        <Island x={islandX(pageW)} time={beamTime} />
+        <g className="wave wave-slow">
+          <path d={swell(ISLAND_WATER + 4, 3, x0 - WAVE_LEN, islandRight(pageW) + 80, 40)} fill="url(#sea)" />
+        </g>
+        {/* Page 2: Veshell */}
+        <VeshellBoat cx={pageW + Math.min(Math.max(usable * 0.5, 420), pageW / 2)} maxWidth={Math.min(usable, pageW) * 0.92} />
+        {/* Page 3: the Architects' jetty */}
+        <Jetty x={pageW * 2 + Math.max(60, usable * 0.5 - 300)} architects={ARCHITECTS} />
+      </Fleet>
       <SeaFront x0={x0} x1={x1} />
     </g>
   );
