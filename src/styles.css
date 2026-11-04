@@ -740,3 +740,9 @@ a:focus-visible {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
+/* Text on moving boats and submarines is placed exactly, not snapped to whole pixels (which
+   made names hop a pixel at a time as their hull moved smoothly). */
+.scene text {
+  text-rendering: geometricPrecision;
+}
