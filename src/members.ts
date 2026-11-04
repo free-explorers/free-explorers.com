@@ -16,6 +16,21 @@ export const BOATS: { id: BoatKind; name: string; range: string; min: number; ma
 ];
 export const boatInfo = (id: BoatKind) => BOATS.find((b) => b.id === id)!;
 const RANK: Record<BoatKind, number> = { galleon: 3, brig: 2, sloop: 1, dinghy: 0 };
+// How big a boat is within its kind, from what's given per month: 0.85 at the bottom of its
+// range up to 1.15 at the top (the galleon's at $5,000), on a log scale so the first dollars
+// count most. The biggest of a kind stays smaller than the smallest of the next.
+const SIZE_BANDS: [number, number][] = [
+  [1, 10],
+  [10, 50],
+  [50, 500],
+  [500, 5000],
+];
+export const sizeWithin = (amount: number) => {
+  const [lo, hi] = SIZE_BANDS.find(([, top], i) => amount < top || i === SIZE_BANDS.length - 1)!;
+  const t = Math.min(1, Math.max(0, Math.log(Math.max(amount, lo) / lo) / Math.log(hi / lo)));
+  return 0.85 + 0.3 * t;
+};
+
 // The boat for a contribution per month (or a one-time gift): amounts between the slider's
 // ranges go to the smaller boat.
 export const boatFor = (amount: number): BoatKind => (amount >= 500 ? "galleon" : amount >= 50 ? "brig" : amount >= 10 ? "sloop" : "dinghy");

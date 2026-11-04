@@ -1,6 +1,7 @@
 import React, { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BOAT_SPEC, MemberBoat, type BoatParts } from "./Boat";
 import type { Slot } from "./World";
+import { sizeWithin } from "../members";
 
 // The explorers' boats sailing the whole sea, across every page: each one holds a heading
 // (left or right) at its own slow speed and drifts between lanes, nearer or further out
@@ -72,12 +73,14 @@ export const Fleet: React.FC<{ slots: Slot[]; seaW: number; page: number; pageW:
     for (const s of slots) {
       const prev = sims.current.get(s.member.id);
       const half = (BOAT_SPEC[s.member.boat].L / 2) * 1.05;
+      // The layout's scale, times the boat's size within its kind (from its amount).
+      const shrink = s.shrink * sizeWithin(s.member.amount);
       const dir: 1 | -1 = Math.random() < 0.5 ? 1 : -1;
       next.set(
         s.member.id,
         prev
-          ? { ...prev, shrink: s.shrink, half }
-          : { x: s.x, y: s.y, dir, speed: rand(0.6, 1.3), lane: s.y, nextChange: now + rand(4, 16), shrink: s.shrink, half, former: !s.member.active, held: false },
+          ? { ...prev, shrink, half }
+          : { x: s.x, y: s.y, dir, speed: rand(0.6, 1.3), lane: s.y, nextChange: now + rand(4, 16), shrink, half, former: !s.member.active, held: false },
       );
     }
     sims.current = next;

@@ -6,6 +6,7 @@ import {
   BOATS,
   boatFor,
   boatInfo,
+  sizeWithin,
   checkoutPageUrl,
   checkoutUrl,
   COLLECTIVE,
@@ -156,7 +157,10 @@ export const JoinFleet: React.FC<{
             <div className="join-preview">
               <svg viewBox="-330 -450 680 520" aria-hidden="true">
                 <Bob dy={4} deg={kind === "galleon" ? 0.8 : 1.4}>
-                  <BoatShape key={kind} kind={kind} uid="join-preview" />
+                  {/* Grows with the amount within its kind, from the waterline up */}
+                  <g transform={`scale(${sizeWithin(monthly)})`}>
+                    <BoatShape key={kind} kind={kind} uid="join-preview" />
+                  </g>
                 </Bob>
               </svg>
               <div className="join-boat">
