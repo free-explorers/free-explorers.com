@@ -139,5 +139,6 @@ export const rangeLabel = (boat: (typeof BOATS)[number], frequency: Frequency) =
   return boat.max === null ? `${formatAmount(boat.min * k)}+` : `${formatAmount(boat.min * k)}–${formatAmount(boat.max * k).replace("$", "")}`;
 };
 
-export const formatAmount = (amount: number) => new Intl.NumberFormat("en", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount);
+export const formatAmount = (amount: number) =>
+  new Intl.NumberFormat("en", { style: "currency", currency: "USD", minimumFractionDigits: Number.isInteger(amount) ? 0 : 2, maximumFractionDigits: 2 }).format(amount);
 export const perLabel = (frequency: Frequency) => (frequency === "month" ? "/ month" : frequency === "year" ? "/ year" : "once");

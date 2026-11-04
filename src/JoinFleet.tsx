@@ -40,6 +40,10 @@ export const JoinFleet: React.FC<{
   const dialog = useRef<HTMLDialogElement>(null);
   const [frequency, setFrequency] = useState<Frequency>("month");
   const [index, setIndex] = useState(indexOf(DEFAULT_AMOUNT));
+  // An amount typed in (for the chosen frequency) instead of the slider's; null uses the
+  // slider. `editing` holds the field's text while it's open.
+  const [custom, setCustom] = useState<number | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const [joined, setJoined] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -49,6 +53,8 @@ export const JoinFleet: React.FC<{
     if (!d) return;
     if (open !== undefined) {
       setIndex(indexOf(open ? boatInfo(open).min : DEFAULT_AMOUNT));
+      setCustom(null);
+      setEditing(null);
       setPaying(false);
       setJoined(false);
       setLoaded(false);
@@ -73,9 +79,21 @@ export const JoinFleet: React.FC<{
 
   // The slider picks an amount per month; yearly is twelve times it. The boat follows the
   // monthly amount.
-  const monthly = AMOUNTS[index];
-  const amount = monthly * multiplier(frequency);
+  const amount = custom ?? AMOUNTS[index] * multiplier(frequency);
+  const monthly = amount / multiplier(frequency);
   const kind = boatFor(monthly);
+  // The slider sits on the step at or below a typed amount.
+  const sliderIndex = custom === null ? index : Math.max(0, AMOUNTS.filter((a) => a <= monthly).length - 1);
+  const pickFrequency = (f: Frequency) => {
+    // A typed amount keeps its value per month (yearly being twelve months of it).
+    if (custom !== null) setCustom(Math.round((custom / multiplier(frequency)) * multiplier(f) * 100) / 100);
+    setFrequency(f);
+  };
+  const commitEdit = () => {
+    const value = Math.round(Number((editing ?? "").replace(/[^0-9.]/g, "")) * 100) / 100;
+    if (value >= 1) setCustom(value);
+    setEditing(null);
+  };
   const boat = boatInfo(kind);
   const price = `${formatAmount(amount)} ${perLabel(frequency)}`;
   const close = () => dialog.current?.close();
@@ -128,7 +146,7 @@ export const JoinFleet: React.FC<{
           <div className="join-choose" style={{ "--boat": boat.color } as React.CSSProperties}>
             <div className="join-frequency" role="radiogroup" aria-label="How often">
               {FREQUENCIES.map((f) => (
-                <button key={f.id} type="button" role="radio" aria-checked={f.id === frequency} onClick={() => setFrequency(f.id)}>
+                <button key={f.id} type="button" role="radio" aria-checked={f.id === frequency} onClick={() => pickFrequency(f.id)}>
                   {f.label}
                 </button>
               ))}
@@ -143,9 +161,42 @@ export const JoinFleet: React.FC<{
               </svg>
               <div className="join-boat">
                 <span className="join-boat-name">{boat.name}</span>
-                <span className="join-amount">
-                  {formatAmount(amount)} <small>{perLabel(frequency)}</small>
-                </span>
+                {editing !== null ? (
+                  <span className="join-amount">
+                    $
+                    <input
+                      className="join-amount-input"
+                      type="number"
+                      inputMode="decimal"
+                      min={1}
+                      step="any"
+                      value={editing}
+                      autoFocus
+                      aria-label={`Amount in dollars ${perLabel(frequency)}`}
+                      onChange={(e) => setEditing(e.target.value)}
+                      onBlur={commitEdit}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") commitEdit();
+                        if (e.key === "Escape") {
+                          // Cancel the edit, not the whole panel.
+                          e.preventDefault();
+                          setEditing(null);
+                        }
+                      }}
+                    />
+                    <small>{perLabel(frequency)}</small>
+                  </span>
+                ) : (
+                  <span className="join-amount">
+                    {formatAmount(amount)} <small>{perLabel(frequency)}</small>
+                    <button type="button" className="join-edit" aria-label="Type an amount" title="Type an amount" onClick={() => setEditing(String(amount))}>
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z" />
+                        <path d="m13.5 6.5 4 4" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
               </div>
             </div>
 
@@ -155,11 +206,14 @@ export const JoinFleet: React.FC<{
               min={0}
               max={AMOUNTS.length - 1}
               step={1}
-              value={index}
-              onChange={(e) => setIndex(Number(e.target.value))}
+              value={sliderIndex}
+              onChange={(e) => {
+                setIndex(Number(e.target.value));
+                setCustom(null);
+              }}
               aria-label="Amount"
               aria-valuetext={`${price}, ${boat.name}`}
-              style={{ "--fill": `${(index / (AMOUNTS.length - 1)) * 100}%` } as React.CSSProperties}
+              style={{ "--fill": `${(sliderIndex / (AMOUNTS.length - 1)) * 100}%` } as React.CSSProperties}
             />
             {/* The four boats along the slider; each jumps to its smallest amount */}
             <div className="join-zones">
@@ -169,7 +223,10 @@ export const JoinFleet: React.FC<{
                   type="button"
                   className={z.id === kind ? "on" : undefined}
                   style={{ flexGrow: z.steps, "--zone": z.color } as React.CSSProperties}
-                  onClick={() => setIndex(indexOf(z.min))}
+                  onClick={() => {
+                    setIndex(indexOf(z.min));
+                    setCustom(null);
+                  }}
                 >
                   <span>{z.name}</span>
                   <small>{rangeLabel(z, frequency)}</small>
@@ -181,7 +238,7 @@ export const JoinFleet: React.FC<{
               {kind === "galleon" ? (
                 <>
                   For enterprise sponsors: your company sails a galleon at the head of the fleet.{" "}
-                  {monthly === AMOUNTS[AMOUNTS.length - 1] && (
+                  {monthly >= AMOUNTS[AMOUNTS.length - 1] && (
                     <>
                       More than {formatAmount(amount)}?{" "}
                       <a href={COLLECTIVE} target="_blank" rel="noreferrer">

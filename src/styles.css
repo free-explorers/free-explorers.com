@@ -505,6 +505,58 @@ a:focus-visible {
   font-weight: 800;
   font-size: 34px;
 }
+.join-amount {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+/* The pencil next to the amount, and the field it opens to type a specific amount. */
+.join-edit {
+  all: unset;
+  cursor: pointer;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: var(--muted);
+}
+.join-edit:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.1);
+}
+.join-edit:focus-visible {
+  outline: 2px solid var(--gold);
+}
+.join-edit svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.join-amount-input {
+  width: 4.2ch;
+  min-width: 3ch;
+  padding: 0 4px;
+  border: 0;
+  border-bottom: 2px solid var(--boat);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  -moz-appearance: textfield;
+}
+.join-amount-input::-webkit-outer-spin-button,
+.join-amount-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.join-amount-input:focus {
+  outline: none;
+}
 .join-amount small {
   font-size: 16px;
   font-weight: 500;
