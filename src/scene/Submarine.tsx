@@ -38,8 +38,9 @@ export const SubShape: React.FC<{ name: string; image?: string | null; uid: stri
   const hull = `M ${-L / 2 + 14} ${-H / 2} L ${L / 2 - 40} ${-H / 2} Q ${L / 2 + 6} ${-H / 2 + 4} ${L / 2 + 6} 0 Q ${L / 2 + 6} ${H / 2 - 4} ${L / 2 - 40} ${H / 2} L ${-L / 2 + 14} ${H / 2} Q ${-L / 2 - 20} ${H / 4} ${-L / 2 - 26} 0 Q ${-L / 2 - 20} ${-H / 4} ${-L / 2 + 14} ${-H / 2} Z`;
   const port = { cx: L * 0.2, cy: -2, r: 19 };
   const text = name.toUpperCase();
-  const size = 12;
+  // Long names get a smaller font rather than squeezed letters (which hop about when moving).
   const max = L * 0.42;
+  const fitSize = Math.min(12, max / Math.max(1, text.length * 0.68));
   return (
     <g>
       {/* The headlight's beam, ahead */}
@@ -102,18 +103,7 @@ export const SubShape: React.FC<{ name: string; image?: string | null; uid: stri
       <circle cx={L / 2 + 2} cy={0} r={6} fill={LIGHT} stroke={BRASS} strokeWidth={2.5} />
       {/* The donor's name on the hull, and their picture in the big porthole */}
       <g className="unflip" data-cx={-L * 0.08}>
-        <text
-          x={-L * 0.08}
-          y={14}
-          dy="0.36em"
-          textAnchor="middle"
-          fontSize={size}
-          fontWeight={800}
-          letterSpacing={1}
-          fill={CREAM}
-          fontFamily={FONT}
-          {...(text.length * size * 0.62 > max ? { textLength: max, lengthAdjust: "spacingAndGlyphs" as const } : {})}
-        >
+        <text x={-L * 0.08} y={14} dy="0.36em" textAnchor="middle" fontSize={fitSize} fontWeight={800} letterSpacing={1} fill={CREAM} fontFamily={FONT}>
           {text}
         </text>
       </g>

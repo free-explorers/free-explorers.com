@@ -184,7 +184,7 @@ export const App: React.FC = () => {
         style={{
           width: frame.w * PAGES.length,
           height: (frame.height * 2 - (BOTTOM - DIVE_TOP)) * frame.unit,
-          transform: `translate(${-index * frame.w}px, ${dived ? -(frame.height - (BOTTOM - DIVE_TOP)) * frame.unit : 0}px)`,
+          transform: `translate(${-index * frame.w}px, ${dived ? -Math.round((frame.height - (BOTTOM - DIVE_TOP)) * frame.unit) : 0}px)`,
           transition: resizing || reduced ? "none" : `transform ${SLIDE_MS}ms cubic-bezier(0.65, 0, 0.35, 1)`,
         }}
       >
