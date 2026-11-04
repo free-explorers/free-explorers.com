@@ -1,75 +1,75 @@
 import { useCallback, useEffect, useState } from "react";
 import snapshot from "./data/members.snapshot.json";
 
-// Open Collective members of the Free Explorers, one boat each. The boat's size follows the
-// member's tier.
+// Open Collective members of the Free Explorers, one boat each. The boat follows how much
+// the member gives: a dinghy, a sloop, a brigantine, or a galleon for enterprise sponsors.
 export const COLLECTIVE = "https://opencollective.com/free-explorers";
 const MEMBERS_URL = `${COLLECTIVE}/members/all.json`;
 
-export type Tier = "founder" | "yearly" | "monthly" | "once";
-export const TIERS: { id: Tier; name: string; color: string }[] = [
-  { id: "founder", name: "Founder Explorer", color: "#f9c46b" },
-  { id: "yearly", name: "Yearly Explorer", color: "#cba6f7" },
-  { id: "monthly", name: "Monthly Explorer", color: "#89dceb" },
-  { id: "once", name: "One-time support", color: "#a6e3a1" },
+export type BoatKind = "dinghy" | "sloop" | "brig" | "galleon";
+export const BOATS: { id: BoatKind; name: string; range: string; min: number; color: string }[] = [
+  { id: "galleon", name: "Galleon", range: "$500+", min: 500, color: "#f9c46b" },
+  { id: "brig", name: "Brigantine", range: "$50–450", min: 50, color: "#cba6f7" },
+  { id: "sloop", name: "Sloop", range: "$15–40", min: 15, color: "#89dceb" },
+  { id: "dinghy", name: "Dinghy", range: "$1–10", min: 1, color: "#a6e3a1" },
 ];
-const RANK: Record<Tier, number> = { founder: 3, yearly: 2, monthly: 1, once: 0 };
-const tierOf = (name: string | null): Tier =>
-  name === "Founder Explorer" ? "founder" : name === "Yearly Explorer" ? "yearly" : name === "Monthly Explorer" ? "monthly" : "once";
+export const boatInfo = (id: BoatKind) => BOATS.find((b) => b.id === id)!;
+const RANK: Record<BoatKind, number> = { galleon: 3, brig: 2, sloop: 1, dinghy: 0 };
+// The boat for a contribution: amounts between the slider's ranges go to the smaller boat.
+export const boatFor = (amount: number): BoatKind => (amount >= 500 ? "galleon" : amount >= 50 ? "brig" : amount >= 15 ? "sloop" : "dinghy");
 
 export type Member = {
   id: string;
   name: string;
   image: string | null;
   profile: string;
-  tier: Tier;
+  boat: BoatKind;
+  // Their last contribution, which sets the boat.
+  amount: number;
   // Still contributing (former explorers sail on the horizon).
   active: boolean;
-  total: number;
   currency: string;
 };
 
 type Raw = {
   type: string;
   role: string;
-  tier: string | null;
   isActive: boolean;
-  totalAmountDonated: number;
+  lastTransactionAmount?: number | null;
   currency: string | null;
   profile: string;
   name: string;
   image: string | null;
 };
 
-// One boat per person: backers only (not the host or the collective's own projects), with
-// their best current tier (or best past tier for former explorers).
+// One boat per person: backers only (not the host or the collective's own projects). A
+// person listed twice keeps their active entry, else their bigger contribution.
 export const toMembers = (raw: Raw[]): Member[] => {
   const byProfile = new Map<string, Member>();
   for (const m of raw) {
     if (m.role !== "BACKER" || (m.type !== "USER" && m.type !== "ORGANIZATION")) continue;
+    const amount = m.lastTransactionAmount ?? 0;
     const next: Member = {
       id: m.profile,
       name: m.name,
       image: m.image ?? `https://images.opencollective.com/${m.profile.split("/").pop()}/avatar/128.png`,
       profile: m.profile,
-      tier: tierOf(m.tier),
+      boat: boatFor(amount),
+      amount,
       active: m.isActive,
-      total: m.totalAmountDonated ?? 0,
-      currency: m.currency ?? "EUR",
+      currency: m.currency ?? "USD",
     };
     const prev = byProfile.get(m.profile);
     if (!prev) {
       byProfile.set(m.profile, next);
       continue;
     }
-    const better = next.active !== prev.active ? next.active : RANK[next.tier] > RANK[prev.tier];
-    const merged = better ? next : prev;
-    byProfile.set(m.profile, { ...merged, active: prev.active || next.active, total: Math.max(prev.total, next.total) });
+    const better = next.active !== prev.active ? next.active : next.amount > prev.amount;
+    byProfile.set(m.profile, { ...(better ? next : prev), active: prev.active || next.active });
   }
-  return [...byProfile.values()].sort((a, b) => Number(b.active) - Number(a.active) || RANK[b.tier] - RANK[a.tier] || b.total - a.total);
+  return [...byProfile.values()].sort((a, b) => Number(b.active) - Number(a.active) || RANK[b.boat] - RANK[a.boat] || b.amount - a.amount);
 };
 
-// Starts from the bundled snapshot and swaps in the live list once it arrives.
 // Starts from the bundled snapshot and swaps in the live list once it arrives. `refresh`
 // fetches it again (after someone joins), past any cache.
 export const useMembers = () => {
@@ -84,63 +84,24 @@ export const useMembers = () => {
   return { members, refresh };
 };
 
-// What each tier costs and where its checkout is, read live from Open Collective (with the
-// values as of writing as a fallback).
-export type Offer = {
-  tier: Tier;
-  name: string;
-  amount: number;
-  currency: string;
-  frequency: "MONTHLY" | "YEARLY" | "ONETIME";
-  // Whether contributors can pick their own amount (the amount is then a suggestion).
-  flexible: boolean;
-  // The tier's path segment in Open Collective URLs ("member-80808").
-  path: string;
-};
-const OFFERS_FALLBACK: Offer[] = [
-  { tier: "founder", name: "Founder Explorer", amount: 20, currency: "USD", frequency: "MONTHLY", flexible: false, path: "member-80808" },
-  { tier: "yearly", name: "Yearly Explorer", amount: 50, currency: "USD", frequency: "YEARLY", flexible: true, path: "yearly-explorer-80806" },
-  { tier: "monthly", name: "Monthly Explorer", amount: 10, currency: "USD", frequency: "MONTHLY", flexible: true, path: "flexible-80809" },
-  { tier: "once", name: "One-time support", amount: 100, currency: "USD", frequency: "ONETIME", flexible: true, path: "one-time-support-80807" },
+// The join slider's amounts: $1 steps to 10, $5 to 30, $10 to 100, $50 to 450, then $500
+// steps to 5,000 (enterprise sponsors).
+const range = (from: number, to: number, step: number) => Array.from({ length: Math.floor((to - from) / step) + 1 }, (_, i) => from + i * step);
+export const AMOUNTS = [...range(1, 10, 1), ...range(15, 30, 5), ...range(40, 100, 10), ...range(150, 450, 50), ...range(500, 5000, 500)];
+
+export type Frequency = "month" | "year" | "once";
+export const FREQUENCIES: { id: Frequency; label: string }[] = [
+  { id: "month", label: "Monthly" },
+  { id: "year", label: "Yearly" },
+  { id: "once", label: "Once" },
 ];
-const TIERS_QUERY = `{ account(slug: "free-explorers") { ... on AccountWithContributions { tiers { nodes { name slug legacyId frequency amountType amount { value currency } } } } } }`;
-type RawTier = { name: string; slug: string; legacyId: number; frequency: Offer["frequency"]; amountType: string; amount: { value: number; currency: string } };
 
-export const useOffers = () => {
-  const [offers, setOffers] = useState(OFFERS_FALLBACK);
-  useEffect(() => {
-    fetch("https://api.opencollective.com/graphql/v2", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: TIERS_QUERY }),
-    })
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((res: { data: { account: { tiers: { nodes: RawTier[] } } } }) => {
-        const live = res.data.account.tiers.nodes.map(
-          (t): Offer => ({
-            tier: t.frequency === "ONETIME" ? "once" : tierOf(t.name),
-            name: t.name,
-            amount: t.amount.value,
-            currency: t.amount.currency,
-            frequency: t.frequency,
-            flexible: t.amountType === "FLEXIBLE",
-            path: `${t.slug}-${t.legacyId}`,
-          }),
-        );
-        const rank = (o: Offer) => TIERS.findIndex((t) => t.id === o.tier);
-        if (live.length) setOffers(live.sort((a, b) => rank(a) - rank(b)));
-      })
-      .catch(() => {});
-  }, []);
-  return offers;
-};
+// Open Collective's checkout for an amount and frequency (in dollars, the collective's
+// currency): embeddable in an iframe, without its own header and FAQ, or as a page.
+const checkoutQuery = (amount: number, frequency: Frequency) => `amount=${amount}${frequency === "once" ? "" : `&interval=${frequency}`}`;
+export const checkoutUrl = (amount: number, frequency: Frequency) =>
+  `https://opencollective.com/embed/free-explorers/donate?${checkoutQuery(amount, frequency)}&hideHeader=true&hideFAQ=true`;
+export const checkoutPageUrl = (amount: number, frequency: Frequency) => `${COLLECTIVE}/donate?${checkoutQuery(amount, frequency)}`;
 
-// The tier's checkout, embeddable in an iframe, without Open Collective's own header and FAQ.
-export const checkoutUrl = (offer: Offer) => `https://opencollective.com/embed/free-explorers/contribute/${offer.path}?hideHeader=true&hideFAQ=true`;
-export const checkoutPageUrl = (offer: Offer) => `${COLLECTIVE}/contribute/${offer.path}/checkout`;
-
-export const formatPrice = (o: Offer) => {
-  const money = new Intl.NumberFormat("en", { style: "currency", currency: o.currency, maximumFractionDigits: 0 }).format(o.amount);
-  const per = o.frequency === "MONTHLY" ? " / month" : o.frequency === "YEARLY" ? " / year" : " once";
-  return `${money}${per}`;
-};
+export const formatAmount = (amount: number) => new Intl.NumberFormat("en", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount);
+export const perLabel = (frequency: Frequency) => (frequency === "month" ? "/ month" : frequency === "year" ? "/ year" : "once");

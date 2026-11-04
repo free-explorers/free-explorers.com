@@ -131,7 +131,7 @@ export const layoutFleet = (members: Member[], pageW: number, reserveRight: numb
       const rowLeft = r === 0 ? left : left + 60 * r;
       const rowRight = right;
       while (queue.length) {
-        const w = BOAT_SPEC[queue[0].tier].L * 1.35 * s;
+        const w = BOAT_SPEC[queue[0].boat].L * 1.35 * s;
         if (width + w > rowRight - rowLeft) break;
         width += w;
         placed.push(queue.shift()!);
@@ -140,7 +140,7 @@ export const layoutFleet = (members: Member[], pageW: number, reserveRight: numb
       const gap = (rowRight - rowLeft - width) / (placed.length + 1);
       let x = rowLeft + gap;
       placed.forEach((m, i) => {
-        const w = BOAT_SPEC[m.tier].L * 1.35 * s;
+        const w = BOAT_SPEC[m.boat].L * 1.35 * s;
         const j = (hash(m.id) - 0.5) * Math.min(gap, 80);
         slots.push({ member: m, x: x + w / 2 + j, y: row.y + (i % 2) * 10 * s, scale: s, delay: hash(m.id + "d") * 6, shrink });
         x += w + gap;
@@ -151,12 +151,12 @@ export const layoutFleet = (members: Member[], pageW: number, reserveRight: numb
     const hs = HORIZON.scale * shrink;
     const hLeft = islandRight(pageW) + 20;
     const hRight = right;
-    const hw = former.reduce((a, m) => a + BOAT_SPEC[m.tier].L * 1.4 * hs, 0);
+    const hw = former.reduce((a, m) => a + BOAT_SPEC[m.boat].L * 1.4 * hs, 0);
     if (hw > hRight - hLeft) ok = false;
     const hgap = (hRight - hLeft - hw) / (former.length + 1);
     let hx = hLeft + hgap;
     former.forEach((m) => {
-      const w = BOAT_SPEC[m.tier].L * 1.4 * hs;
+      const w = BOAT_SPEC[m.boat].L * 1.4 * hs;
       slots.push({ member: m, x: hx + w / 2, y: HORIZON.y, scale: hs, delay: hash(m.id + "d") * 6, shrink });
       hx += w + hgap;
     });

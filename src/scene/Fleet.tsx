@@ -71,7 +71,7 @@ export const Fleet: React.FC<{ slots: Slot[]; seaW: number; page: number; pageW:
     const next = new Map<string, Sim>();
     for (const s of slots) {
       const prev = sims.current.get(s.member.id);
-      const half = (BOAT_SPEC[s.member.tier].L / 2) * 1.05;
+      const half = (BOAT_SPEC[s.member.boat].L / 2) * 1.05;
       const dir: 1 | -1 = Math.random() < 0.5 ? 1 : -1;
       next.set(
         s.member.id,
