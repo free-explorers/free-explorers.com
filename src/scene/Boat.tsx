@@ -26,7 +26,7 @@ export const BOAT_SPEC: Record<BoatKind, Spec> = {
   // The galleon is drawn by its own component; its masts here only give its height.
   galleon: { L: 440, masts: [{ x: -10, h: 330 }], jib: true },
   brig: { L: 300, masts: [{ x: -95, h: 150 }, { x: 30, h: 190 }], jib: true },
-  sloop: { L: 205, masts: [{ x: 10, h: 165 }], jib: true },
+  sloop: { L: 205, masts: [{ x: 10, h: 125 }], jib: true },
   dinghy: { L: 130, masts: [{ x: 4, h: 140 }], jib: false },
 };
 // How much bigger each boat is drawn on the sea than its plan (the galleon stands out).
@@ -302,7 +302,8 @@ const Sailboat: React.FC<ShapeProps> = ({ kind, active = true, image, name = "",
       </g>
     );
     furled = <Furled x={x0 - w} y={foot - 4} w={w} />;
-    const area: Box = { x: x0 - w * 0.9, y: throat + 6, w: w * 0.84, h: foot - throat - 14 };
+    // The logo smaller than the brigantine's: about 60% of the sail, centred.
+    const area: Box = { x: x0 - w * 0.8, y: throat + (foot - throat) * 0.2, w: w * 0.62, h: (foot - throat) * 0.6 };
     logo = <SailLogo sail={d} area={area} image={image} name={name} uid={uid} nameless />;
   } else {
     // Brigantine: the rear mast's triangular sail, the main mast's big square sails.
