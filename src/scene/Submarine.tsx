@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Member } from "../members";
+import { Bob } from "./Motion";
 
 // The submarines of one-time donors and former monthly/yearly donors, cruising under the sea:
 // old-style wooden hulls with copper fittings (bands, nose, conning tower, fins), a conning tower, a periscope, a propeller and a lit
@@ -161,6 +162,8 @@ const MemberSub: React.FC<{ member: Member; parts: (p: SubParts | null) => void;
     return () => parts(null);
   }, [parts]);
   const k = subScale(member.total);
+  // Each submarine pitches at its own pace.
+  const pitch = 6 + (member.id.length % 5);
   return (
     <g ref={root}>
       <a
@@ -175,7 +178,9 @@ const MemberSub: React.FC<{ member: Member; parts: (p: SubParts | null) => void;
         onBlur={() => onHold(false)}
       >
         <g ref={body}>
-          <SubShape name={member.name} image={member.image} uid={member.id.replace(/\W/g, "")} />
+          <Bob dy={2} deg={0.9} dur={pitch} delay={pitch * 0.37}>
+            <SubShape name={member.name} image={member.image} uid={member.id.replace(/\W/g, "")} />
+          </Bob>
         </g>
         <g className="boat-label" transform={`translate(0 ${-(54 / 2 + 70) * k - 16})`}>
           <text textAnchor="middle" className="boat-name">
@@ -190,9 +195,11 @@ const MemberSub: React.FC<{ member: Member; parts: (p: SubParts | null) => void;
   );
 };
 
-// The submarines cruising: each at its own depth (held: no vertical drift, which made their
-// names hop a pixel at a time in Chromium) and slow speed, holding its heading on screen and
-// turning about only out of sight (at the sea's ends, or now and then). Stops while pointed at. Positions are written straight onto the SVG.
+// The submarines cruising: each at its own depth and slow speed, holding its heading on
+// screen and turning about only out of sight (at the sea's ends, or now and then), drifting
+// between depths. They pitch gently as they go: besides looking right, a tilted name is drawn
+// smoothly by Chromium (level text is snapped to whole pixels and hopped as the submarine
+// drifted). Stops while pointed at. Positions are written straight onto the SVG.
 type Sim = { x: number; y: number; dir: 1 | -1; speed: number; depth: number; nextChange: number; k: number; held: boolean };
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const SPEED = 12;
@@ -260,7 +267,7 @@ export const SubFleet: React.FC<{ members: Member[]; seaW: number; top: number; 
         const dt = Math.min(0.1, (nowMs - last) / 1000);
         last = nowMs;
         const now = nowMs / 1000;
-        const { seaW, visible, page, pageW } = env.current;
+        const { seaW, top, bottom, visible, page, pageW } = env.current;
         for (const [id, s] of sims.current) {
           if (!s.held) {
             const half = (SUB_LENGTH / 2 + 40) * s.k;
@@ -269,9 +276,12 @@ export const SubFleet: React.FC<{ members: Member[]; seaW: number; top: number; 
             if (s.x > seaW + half + 60 && s.dir > 0 && !seen) s.dir = -1;
             if (now >= s.nextChange) {
               if (s.nextChange > 0 && !seen && Math.random() < 0.5) s.dir = s.dir === 1 ? -1 : 1;
+              s.depth = rand(top, bottom);
               s.nextChange = now + rand(12, 30);
             }
             s.x += s.dir * SPEED * s.speed * dt;
+            const dy = s.depth - s.y;
+            s.y += Math.sign(dy) * Math.min(Math.abs(dy), 4 * dt);
           }
           place(id);
         }
