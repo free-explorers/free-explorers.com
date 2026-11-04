@@ -41,7 +41,7 @@ const Island: React.FC<{ x: number; time: number }> = ({ x, time }) => (
     <g transform={`scale(${LH_SCALE}) translate(-116 ${-lighthouseFoot(LH_VARIANT)})`}>
       {/* A flat halo around the bulb: two solid rings of warm light, no gradient */}
       {[78, 60].map((r) => (
-        <circle key={r} cx={116} cy={103} r={r} fill="#ffdd8f" opacity={0.14} />
+        <circle key={r} cx={116} cy={103} r={r} fill="#ffd072" opacity={0.14} />
       ))}
       <Lighthouse hole="#123a4a" beams={1} time={time} variant={LH_VARIANT} tower={{ stone: "#c9c2b5", line: "#a9a193", trim: "#1f2c36", door: "#6a432c", lit: 1 }} />
     </g>
