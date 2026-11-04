@@ -11,7 +11,9 @@ import {
   COLLECTIVE,
   formatAmount,
   FREQUENCIES,
+  multiplier,
   perLabel,
+  rangeLabel,
   type BoatKind,
   type Frequency,
 } from "./members";
@@ -69,8 +71,11 @@ export const JoinFleet: React.FC<{
     return () => window.removeEventListener("message", onMessage);
   }, [onJoined]);
 
-  const amount = AMOUNTS[index];
-  const kind = boatFor(amount);
+  // The slider picks an amount per month; yearly is twelve times it. The boat follows the
+  // monthly amount.
+  const monthly = AMOUNTS[index];
+  const amount = monthly * multiplier(frequency);
+  const kind = boatFor(monthly);
   const boat = boatInfo(kind);
   const price = `${formatAmount(amount)} ${perLabel(frequency)}`;
   const close = () => dialog.current?.close();
@@ -167,7 +172,7 @@ export const JoinFleet: React.FC<{
                   onClick={() => setIndex(indexOf(z.min))}
                 >
                   <span>{z.name}</span>
-                  <small>{z.range}</small>
+                  <small>{rangeLabel(z, frequency)}</small>
                 </button>
               ))}
             </div>
@@ -176,7 +181,7 @@ export const JoinFleet: React.FC<{
               {kind === "galleon" ? (
                 <>
                   For enterprise sponsors: your company sails a galleon at the head of the fleet.{" "}
-                  {amount === AMOUNTS[AMOUNTS.length - 1] && (
+                  {monthly === AMOUNTS[AMOUNTS.length - 1] && (
                     <>
                       More than {formatAmount(amount)}?{" "}
                       <a href={COLLECTIVE} target="_blank" rel="noreferrer">

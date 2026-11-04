@@ -285,12 +285,12 @@ const BoatLegend: React.FC<{ members: Member[]; onPick: (boat: BoatKind) => void
       const n = members.filter((m) => m.active && m.boat === b.id).length;
       return (
         <li key={b.id}>
-          <button type="button" onClick={() => onPick(b.id)} aria-label={`Join with a ${b.name} (${b.range})`}>
+          <button type="button" onClick={() => onPick(b.id)} aria-label={`Join with a ${b.name} (${b.range} a month)`}>
             <svg viewBox={b.id === "galleon" ? "-330 -440 680 500" : "-170 -330 340 360"} aria-hidden="true">
               <BoatShape kind={b.id} uid={`legend-${b.id}`} />
             </svg>
             <span>{b.name}</span>
-            <span className="legend-range">{b.range}</span>
+            <span className="legend-range">{b.range} / mo</span>
             <span className="legend-n">{n}</span>
           </button>
         </li>
