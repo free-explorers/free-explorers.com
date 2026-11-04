@@ -80,7 +80,7 @@ export const BoatLab: React.FC = () => (
   <main className="lab">
     <header>
       <h1>Fleet</h1>
-      <p>The site's boats: dinghy, sloop and brigantine with the member's avatar on the main sail; the galleon (three masts) with the sponsor's logo on the main sail. Top row with a picture, bottom row without.</p>
+      <p>The site's boats: the member's picture on the dinghy's stern flag, filling the sloop's and the brigantine's main sail; the galleon (three masts) with the sponsor's logo on the main sail. Top row with a picture, bottom row without.</p>
     </header>
     {[true, false].map((withLogo) => (
       <section key={String(withLogo)} className="lab-row">
