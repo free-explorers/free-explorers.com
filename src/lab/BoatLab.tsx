@@ -4,6 +4,7 @@ import { BoatShape } from "../scene/Boat";
 import { Bob } from "../scene/Motion";
 import { VARIANTS } from "./variants";
 import { CLOTH_MODES, ClothBoat } from "./cloth";
+import { FLAG_MODES, FlagBoat } from "./flags";
 
 // Boat variations (dev only, not part of the site): a row per boat type, the current boat
 // first, then five variants of the same style, each showing the donor a different way.
@@ -40,8 +41,11 @@ const FRAME: Record<BoatKind, [number, number, number, number]> = {
   galleon: [-390, -470, 750, 540],
 };
 
-const Cell: React.FC<{ kind: BoatKind; label: string; current?: boolean; children: React.ReactNode }> = ({ kind, label, current, children }) => {
-  const [x, y, w, h] = FRAME[kind];
+const Cell: React.FC<{ kind: BoatKind; label: string; current?: boolean; wide?: boolean; children: React.ReactNode }> = ({ kind, label, current, wide, children }) => {
+  const [fx, fy, fw, fh] = FRAME[kind];
+  // Wide: room for flags flying beyond the stern and above the mastheads.
+  const grow = wide ? { left: fw * 0.22, top: fh * 0.18 } : { left: 0, top: 0 };
+  const [x, y, w, h] = [fx - grow.left, fy - grow.top, fw + grow.left, fh + grow.top];
   return (
     <figure className={`lab-cell${current ? " lab-current" : ""}`}>
       <svg viewBox={`${x} ${y} ${w} ${h}`} aria-label={label}>
@@ -64,7 +68,34 @@ const Cell: React.FC<{ kind: BoatKind; label: string; current?: boolean; childre
 export const BoatLab: React.FC = () => (
   <main className="lab">
     <header>
-      <h1>Logo as sail cloth</h1>
+      <h1>Logo as a flag</h1>
+      <p>
+        The donor's name on the hull and their logo on flags, the sails left plain. Flags stream aft, as on a boat under way. Five treatments per boat, then the
+        fallback for a donor without a logo.
+      </p>
+    </header>
+    {KINDS.map((kind) => {
+      const b = BOATS.find((x) => x.id === kind)!;
+      const donor = CLOTH_DONOR[kind];
+      return (
+        <section key={`flag-${kind}`} className="lab-row">
+          <h2>
+            {b.name} <span>{b.range} / mo</span>
+          </h2>
+          <div className="lab-cells">
+            {FLAG_MODES.map((f, i) => (
+              <Cell key={f.mode} kind={kind} label={`${i + 1} · ${f.label}`} wide>
+                <Bob delay={i * 1.1} deg={kind === "galleon" ? 0.8 : 1.4}>
+                  <FlagBoat kind={kind} mode={f.mode} image={f.mode === "nologo" ? undefined : donor.image} name={f.mode === "nologo" ? NO_LOGO : donor.name} uid={`fl-${kind}-${f.mode}`} color={b.color} />
+                </Bob>
+              </Cell>
+            ))}
+          </div>
+        </section>
+      );
+    })}
+    <header className="lab-later">
+      <h1>Earlier: logo as sail cloth</h1>
       <p>
         The donor's name on the hull and their logo as sail cloth, on the site's boats. Five treatments per boat, then the fallback for a donor without a logo.
         Logos of each kind Open Collective serves: transparent round (Airbnb), transparent (Webpack), an opaque square (Sentry), a wide company logo (sample).

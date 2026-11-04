@@ -7,7 +7,8 @@ import { PlankHull, RIG, hullFor, inTriangle, plan, square, triangle, triangleSh
 // donor without a logo (plain sails, just the name). Waterline at y 0, bow to the right.
 
 export type ClothMode = "plain" | "fill" | "canvas" | "patch" | "pattern" | "spinnaker";
-export type ClothProps = { kind: BoatKind; mode: ClothMode; image?: string; name: string; uid: string; color: string };
+// `pennants: false` leaves the mastheads bare (for flags drawn over the boat).
+export type ClothProps = { kind: BoatKind; mode: ClothMode; image?: string; name: string; uid: string; color: string; pennants?: boolean };
 
 const SAIL = "#f4f1ea";
 const SHADE = "#dcd5c4";
@@ -109,7 +110,7 @@ const spinnaker = (mx: number, top: number, deck: number, tackX: number) => {
 // ---------------------------------------------------------------------------------------
 // The site's sailing boats (dinghy, sloop, brigantine): triangle main sails, a jib.
 
-const MASTS: Record<Exclude<BoatKind, "galleon">, { x: number; h: number }[]> = {
+export const MASTS: Record<Exclude<BoatKind, "galleon">, { x: number; h: number }[]> = {
   dinghy: [{ x: 4, h: 140 }],
   sloop: [{ x: 0, h: 220 }],
   brig: [
@@ -118,7 +119,7 @@ const MASTS: Record<Exclude<BoatKind, "galleon">, { x: number; h: number }[]> = 
   ],
 };
 
-const Sailboat: React.FC<ClothProps & { kind: Exclude<BoatKind, "galleon"> }> = ({ kind, mode, image, name, uid, color }) => {
+const Sailboat: React.FC<ClothProps & { kind: Exclude<BoatKind, "galleon"> }> = ({ kind, mode, image, name, uid, color, pennants = true }) => {
   const { L, F } = RIG[kind];
   const deck = -F;
   const bow = { x: L / 2 + L * 0.05, y: deck * 1.3 };
@@ -138,7 +139,7 @@ const Sailboat: React.FC<ClothProps & { kind: Exclude<BoatKind, "galleon"> }> = 
         <g key={i}>
           <rect x={m.x - 2.5} y={deck - m.h} width={5} height={m.h} rx={2} fill={WOOD_DARK} />
           <line x1={m.x} y1={deck - m.h} x2={-L / 2 + 4} y2={deck} stroke={ROPE} strokeWidth={1.2} opacity={0.7} />
-          <path d={`M ${m.x + 2} ${deck - m.h} L ${m.x + 2 + L * 0.12} ${deck - m.h + 6} L ${m.x + 2} ${deck - m.h + 13} Z`} fill={color} />
+          {pennants && <path d={`M ${m.x + 2} ${deck - m.h} L ${m.x + 2 + L * 0.12} ${deck - m.h + 6} L ${m.x + 2} ${deck - m.h + 13} Z`} fill={color} />}
         </g>
       ))}
       <line x1={fore.x} y1={deck - fore.h} x2={spin ? sprit.x : bow.x} y2={spin ? sprit.y : bow.y} stroke={ROPE} strokeWidth={1.2} opacity={0.7} />
@@ -173,7 +174,7 @@ const Sailboat: React.FC<ClothProps & { kind: Exclude<BoatKind, "galleon"> }> = 
 // "spinnaker" (a galleon has none) the logo goes on a spritsail under the bowsprit and on the
 // main course, as on period galleons.
 
-const Galleon: React.FC<ClothProps> = ({ mode, image, name, uid, color }) => {
+const Galleon: React.FC<ClothProps> = ({ mode, image, name, uid, color, pennants = true }) => {
   const p = plan("galleon");
   const { L, F } = RIG.galleon;
   const deck = p.deck;
@@ -198,7 +199,7 @@ const Galleon: React.FC<ClothProps> = ({ mode, image, name, uid, color }) => {
       ].map((m, i) => (
         <g key={i}>
           <rect x={m.x - 4} y={m.base - m.h} width={8} height={m.h} rx={3} fill={WOOD_DARK} />
-          <path d={`M ${m.x + 3} ${m.base - m.h} L ${m.x + 73} ${m.base - m.h + 9} L ${m.x + 3} ${m.base - m.h + 18} Z`} fill={color} />
+          {pennants && <path d={`M ${m.x + 3} ${m.base - m.h} L ${m.x + 73} ${m.base - m.h + 9} L ${m.x + 3} ${m.base - m.h + 18} Z`} fill={color} />}
         </g>
       ))}
       <line x1={232} y1={deck - 16} x2={sprit.x} y2={sprit.y} stroke={WOOD_DARK} strokeWidth={6} strokeLinecap="round" />
