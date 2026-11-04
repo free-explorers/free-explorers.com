@@ -311,12 +311,14 @@ export const World: React.FC<{
   page: number;
   // Opens the join panel on a boat.
   onPick: (boat: BoatKind) => void;
+  // What the page to the right of the Explorers shows.
+  side: "veshell" | "architects";
   // Width of the text column on the right, in world units (kept clear on each page).
   reserveRight: number;
   // The frame's height in world units, and whether the camera is under the sea.
   height: number;
   dived: boolean;
-}> = ({ pageW, pages, members, beamTime, reserveRight, page, onPick, height, dived }) => {
+}> = ({ pageW, pages, members, beamTime, reserveRight, page, onPick, height, dived, side }) => {
   const x0 = -pageW;
   const x1 = pageW * (pages + 1);
   // On the surface, those with an active monthly/yearly contribution; below, everyone else.
@@ -349,10 +351,12 @@ export const World: React.FC<{
         <Slide dx={WAVE_LEN} dur={6}>
           <path d={swell(ISLAND_WATER + 4, 3, x0 - WAVE_LEN, islandRight(pageW) + 80, 40)} fill="url(#sea)" />
         </Slide>
-        {/* Page 2: Veshell */}
-        <VeshellBoat cx={pageW + Math.min(Math.max(usable * 0.5, 420), pageW / 2)} maxWidth={Math.min(usable, pageW) * 0.92} />
-        {/* Page 3: the Architects' jetty */}
-        <Jetty x={pageW * 2 + Math.max(60, usable * 0.5 - 300)} architects={ARCHITECTS} />
+        {/* The page to the right: Veshell's house-boat, or the Architects' jetty */}
+        {side === "veshell" ? (
+          <VeshellBoat cx={pageW + Math.min(Math.max(usable * 0.5, 420), pageW / 2)} maxWidth={Math.min(usable, pageW) * 0.92} />
+        ) : (
+          <Jetty x={pageW + Math.max(60, usable * 0.5 - 300)} architects={ARCHITECTS} />
+        )}
       </Fleet>
       <SeaFront x0={x0} x1={x1} />
       {/* Under the sea: the depths, and the submarines */}

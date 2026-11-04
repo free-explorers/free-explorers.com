@@ -9,6 +9,9 @@ import { JoinFleet } from "./JoinFleet";
 // along to the page's stretch. The title and the menu stay put on the right.
 
 type PageId = "explorers" | "veshell" | "architects";
+// Two slots: the Explorers page (home), and one page to its right showing whichever other page
+// you went to; from there you come back home before going elsewhere.
+const SLOTS = 2;
 const PAGES: { id: PageId; label: string }[] = [
   { id: "explorers", label: "The Explorers" },
   { id: "veshell", label: "Veshell" },
@@ -113,11 +116,34 @@ export const App: React.FC = () => {
   }, [refresh]);
   const reduced = useReducedMotion();
   const [page, setPage] = useState<PageId>(pageFromHash);
-  const index = PAGES.findIndex((p) => p.id === page);
+  const index = page === "explorers" ? 0 : 1;
+  // What the right-hand slot shows: the page there, kept while sliding back home.
+  const [side, setSide] = useState<Exclude<PageId, "explorers">>(() => (page === "explorers" ? "veshell" : page));
+  const pageRef = useRef(page);
+  pageRef.current = page;
   useEffect(() => {
-    const onHash = () => setPage(pageFromHash());
+    let wait = 0;
+    const onHash = () => {
+      clearTimeout(wait);
+      const next = pageFromHash();
+      const from = pageRef.current;
+      // From one right-hand page straight to another: slide back home, then out again.
+      if (from !== "explorers" && next !== "explorers" && next !== from) {
+        setPage("explorers");
+        wait = window.setTimeout(() => {
+          setSide(next);
+          setPage(next);
+        }, SLIDE_MS + 80);
+        return;
+      }
+      if (next !== "explorers") setSide(next);
+      setPage(next);
+    };
     window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
+    return () => {
+      window.removeEventListener("hashchange", onHash);
+      clearTimeout(wait);
+    };
   }, []);
   // The beams sweep once, when the site opens; navigating doesn't replay them.
   const beamTime = useBeamSweep(0, reduced);
@@ -133,12 +159,13 @@ export const App: React.FC = () => {
       if (e.key === "ArrowUp") setDived(false);
       // Under the sea, there's nowhere to go sideways: the depths are under the first page.
       if (dived) return;
-      const next = e.key === "ArrowRight" ? index + 1 : e.key === "ArrowLeft" ? index - 1 : -1;
-      if (next >= 0 && next < PAGES.length) window.location.hash = `/${PAGES[next].id}`;
+      // Right: out to the last page visited on the right; left: back home.
+      if (e.key === "ArrowRight" && index === 0) window.location.hash = `/${side}`;
+      if (e.key === "ArrowLeft" && index === 1) window.location.hash = "/explorers";
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [index, page, dived]);
+  }, [index, page, dived, side]);
   // The depths are only under the first page: leaving it surfaces.
   useEffect(() => {
     if (page !== "explorers") setDived(false);
@@ -207,7 +234,7 @@ export const App: React.FC = () => {
       <div
         className="scene-track"
         style={{
-          width: frame.w * PAGES.length,
+          width: frame.w * SLOTS,
           height: (frame.height * 2 - (BOTTOM - DIVE_TOP)) * frame.unit,
           transform: `translate(${-index * frame.w}px, ${-diveY}px)`,
           transition: slide,
@@ -215,14 +242,15 @@ export const App: React.FC = () => {
       >
         <svg
           className="scene"
-          viewBox={`0 ${BOTTOM - frame.height} ${frame.pageW * PAGES.length} ${frame.height * 2 - (BOTTOM - DIVE_TOP)}`}
+          viewBox={`0 ${BOTTOM - frame.height} ${frame.pageW * SLOTS} ${frame.height * 2 - (BOTTOM - DIVE_TOP)}`}
           preserveAspectRatio="xMinYMin slice"
           role="img"
           aria-label="The Free Explorers lighthouse church by the sea, with a boat for every member of the collective"
         >
           <World
             pageW={frame.pageW}
-            pages={PAGES.length}
+            pages={SLOTS}
+            side={side}
             members={members}
             beamTime={beamTime}
             reserveRight={reserveRight}
@@ -296,13 +324,25 @@ export const App: React.FC = () => {
           </a>
           <p className="tagline">Funding the open-source projects of tomorrow</p>
         </header>
+        {/* Home: the pages to go to. On a page to the right: only the way back. */}
         <nav className="menu" aria-label="Pages">
-          {PAGES.map((p, i) => (
-            <a key={p.id} href={`#/${p.id}`} aria-current={p.id === page ? "page" : undefined}>
-              <span className="menu-index">{String(i + 1).padStart(2, "0")}</span>
-              {p.label}
+          {page === "explorers" ? (
+            PAGES.filter((p) => p.id !== "explorers").map((p) => (
+              <a key={p.id} href={`#/${p.id}`}>
+                {p.label}
+                <span className="menu-arrow" aria-hidden="true">
+                  →
+                </span>
+              </a>
+            ))
+          ) : (
+            <a href="#/explorers" className="menu-back">
+              <span className="menu-arrow" aria-hidden="true">
+                ←
+              </span>
+              The Explorers
             </a>
-          ))}
+          )}
         </nav>
         <div className="panels">
           <Panel on={page === "explorers"}>

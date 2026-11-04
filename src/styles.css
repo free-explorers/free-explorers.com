@@ -799,3 +799,8 @@ a:focus-visible {
     right: 16px;
   }
 }
+
+.menu-arrow {
+  color: var(--gold);
+  font-weight: 700;
+}
