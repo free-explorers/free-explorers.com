@@ -95,6 +95,13 @@ const BEAM_LAYERS = [
 ];
 // Warm lamp light, between amber and pale yellow.
 const BEAM_COLOR = "#ffd072";
+// Along its length the beam holds full strength near the lamp, then fades out to nothing at
+// its far end (the sides stay sharp).
+const BEAM_FADE = [
+  { at: 0, opacity: 1 },
+  { at: 0.12, opacity: 1 },
+  { at: 1, opacity: 0 },
+];
 
 // Beams growing out of the logo's pills, along each one's direction: they shoot out, hold,
 // and fade out gently as the next ones come on (the last one stays).
@@ -124,10 +131,20 @@ const Beams: React.FC<{ time: number; on: number }> = ({ time, on }) => (
       const stub = r.half * 2 - r.width;
       const ox = ix + r.dx * stub;
       const oy = iy + r.dy * stub;
+      // The fade runs over the beam's full length (not its current reach), so a growing beam
+      // shows its strong part first.
+      const fadeId = `fe-beam-fade-${i}`;
       return (
         <g key={i} opacity={fade}>
+          <defs>
+            <linearGradient id={fadeId} gradientUnits="userSpaceOnUse" x1={ix} y1={iy} x2={ix + r.dx * BEAM_LENGTH} y2={iy + r.dy * BEAM_LENGTH}>
+              {BEAM_FADE.map((f) => (
+                <stop key={f.at} offset={f.at} stopColor={BEAM_COLOR} stopOpacity={f.opacity} />
+              ))}
+            </linearGradient>
+          </defs>
           {BEAM_LAYERS.map((l) => (
-            <path key={l.half} d={wedge(len, l.half)} fill={BEAM_COLOR} opacity={l.opacity} />
+            <path key={l.half} d={wedge(len, l.half)} fill={`url(#${fadeId})`} opacity={l.opacity} />
           ))}
           <line x1={ix} y1={iy} x2={ox} y2={oy} stroke="#fff" strokeWidth={r.width} strokeLinecap="round" />
         </g>
