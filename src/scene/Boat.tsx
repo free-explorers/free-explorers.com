@@ -19,6 +19,8 @@ const SAIL = "#f4f1ea";
 const SAIL_SHADE = "#e3dccb";
 const ROPE = "#3b2b20";
 const GOLD = "#e0b44f";
+// The dinghy's stern flag: the brand teal, like the Veshell flag (behind pictures and initials).
+const FLAG_TEAL = "#006888";
 
 type Mast = { x: number; h: number };
 type Spec = { L: number; masts: Mast[]; jib: boolean };
@@ -270,7 +272,7 @@ const SternFlag: React.FC<{ staffX: number; deck: number; L: number; color: stri
           <path d={d} />
         </clipPath>
       </defs>
-      <path d={d} fill={logo ? SAIL : color} />
+      <path d={d} fill={FLAG_TEAL} />
       <g clipPath={`url(#stern-flag-${uid})`}>
         <g className="unflip" data-cx={x - w / 2}>
           {logo ? (
