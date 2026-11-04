@@ -48,9 +48,13 @@ export const SubShape: React.FC<{ name: string; image?: string | null; uid: stri
       {/* Propeller (spinning) and rudder fins at the stern */}
       <g transform={`translate(${-L / 2 - 30} 0)`}>
         <rect x={-4} y={-3} width={10} height={6} fill={COPPER_DARK} />
-        <ellipse cx={-6} cy={0} rx={4} ry={18} fill={BRASS}>
-          <animate attributeName="ry" values="18;3;18" dur="0.5s" repeatCount="indefinite" />
-        </ellipse>
+        {/* Spinning: three blade positions fading into one another (only opacity animates, so
+            the submarine's shape never changes and nothing on it jitters) */}
+        {[18, 10, 4].map((ry, k) => (
+          <ellipse key={ry} cx={-6} cy={0} rx={4} ry={ry} fill={BRASS} opacity={k === 0 ? 1 : 0}>
+            <animate attributeName="opacity" values={k === 0 ? "1;0;0;1" : k === 1 ? "0;1;0;0" : "0;0;1;0"} keyTimes="0;0.33;0.66;1" dur="0.45s" repeatCount="indefinite" />
+          </ellipse>
+        ))}
       </g>
       <path d={`M ${-L / 2 - 6} -8 L ${-L / 2 - 22} -30 L ${-L / 2 - 2} -30 L ${-L / 2 + 14} -10 Z`} fill={COPPER_DARK} />
       <path d={`M ${-L / 2 - 6} 8 L ${-L / 2 - 22} 30 L ${-L / 2 - 2} 30 L ${-L / 2 + 14} 10 Z`} fill={COPPER_DARK} />
