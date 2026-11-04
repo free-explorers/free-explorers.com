@@ -60,3 +60,6 @@ body {
   padding-top: 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
+.lab-cells-big {
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+}

@@ -5,6 +5,7 @@ import { Bob } from "../scene/Motion";
 import { VARIANTS } from "./variants";
 import { CLOTH_MODES, ClothBoat } from "./cloth";
 import { FLAG_MODES, FlagBoat } from "./flags";
+import { GALLEON_OPTIONS, Galleon2 } from "./galleon2";
 
 // Boat variations (dev only, not part of the site): a row per boat type, the current boat
 // first, then five variants of the same style, each showing the donor a different way.
@@ -33,6 +34,9 @@ const CLOTH_DONOR: Record<BoatKind, { name: string; image?: string }> = {
 };
 const NO_LOGO = "Rodolfo Hansen";
 
+// The galleon rework's frame: taller, for the single tall mast.
+const G2_FRAME: [number, number, number, number] = [-330, -510, 720, 580];
+
 // Each row's frame, fitted to its boat (x, y, width, height), the waterline at 0.
 const FRAME: Record<BoatKind, [number, number, number, number]> = {
   dinghy: [-130, -230, 280, 260],
@@ -41,8 +45,15 @@ const FRAME: Record<BoatKind, [number, number, number, number]> = {
   galleon: [-390, -470, 750, 540],
 };
 
-const Cell: React.FC<{ kind: BoatKind; label: string; current?: boolean; wide?: boolean; children: React.ReactNode }> = ({ kind, label, current, wide, children }) => {
-  const [fx, fy, fw, fh] = FRAME[kind];
+const Cell: React.FC<{ kind: BoatKind; label: string; current?: boolean; wide?: boolean; frame?: [number, number, number, number]; children: React.ReactNode }> = ({
+  kind,
+  label,
+  current,
+  wide,
+  frame,
+  children,
+}) => {
+  const [fx, fy, fw, fh] = frame ?? FRAME[kind];
   // Wide: room for flags flying beyond the stern and above the mastheads.
   const grow = wide ? { left: fw * 0.22, top: fh * 0.18 } : { left: 0, top: 0 };
   const [x, y, w, h] = [fx - grow.left, fy - grow.top, fw + grow.left, fh + grow.top];
@@ -68,6 +79,26 @@ const Cell: React.FC<{ kind: BoatKind; label: string; current?: boolean; wide?: 
 export const BoatLab: React.FC = () => (
   <main className="lab">
     <header>
+      <h1>Galleon rework</h1>
+      <p>Bolder, with a single main mast carrying one stack of square sails. The current galleon first, for comparison.</p>
+    </header>
+    <section className="lab-row">
+      <div className="lab-cells lab-cells-big">
+        <Cell kind="galleon" label="Current" current frame={G2_FRAME}>
+          <Bob deg={0.8}>
+            <BoatShape kind="galleon" name="Acme Corp" uid="g2-current" />
+          </Bob>
+        </Cell>
+        {GALLEON_OPTIONS.map((o, i) => (
+          <Cell key={o.option} kind="galleon" label={`${i + 1} · ${o.label}`} frame={G2_FRAME}>
+            <Bob delay={i * 1.3} deg={0.8}>
+              <Galleon2 option={o.option} name="Acme Corp" color="#f9c46b" uid={`g2-${o.option}`} />
+            </Bob>
+          </Cell>
+        ))}
+      </div>
+    </section>
+    <header className="lab-later">
       <h1>Logo as a flag</h1>
       <p>
         The donor's name on the hull and their logo on flags, the sails left plain. Flags stream aft, as on a boat under way. Five treatments per boat, then the
