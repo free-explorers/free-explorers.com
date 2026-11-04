@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BEAM_COUNT, BEAM_STEP } from "./scene/Lighthouse";
-import { BOTTOM, World } from "./scene/World";
+import { BOTTOM, World, beamY } from "./scene/World";
 import { BoatShape } from "./scene/Boat";
 import { COLLECTIVE, TIERS, useMembers, type Member } from "./members";
 
@@ -72,6 +72,8 @@ const useReducedMotion = () => {
 };
 
 const SLIDE_MS = 1400;
+// The column's top padding (see .column).
+const COLUMN_TOP = 40;
 
 export const App: React.FC = () => {
   const frame = useFrame();
@@ -122,6 +124,26 @@ export const App: React.FC = () => {
 
   // The text column's width, in world units, so the scene keeps clear of it.
   const columnPx = frame.narrow ? 0 : Math.min(440, frame.w * 0.34);
+  // The title sits in the middle of the lighthouse's beam: its centre on the beam's centre
+  // line (measured once the font is in; phones keep it at the top).
+  const wordmark = useRef<HTMLAnchorElement>(null);
+  const [titleBox, setTitleBox] = useState({ w: 0, h: 0, right: 0 });
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = wordmark.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setTitleBox({ w: r.width, h: r.height, right: window.innerWidth - r.right });
+    };
+    measure();
+    document.fonts?.ready.then(measure);
+  }, [frame.w, frame.h, frame.narrow]);
+  const titleTop = (() => {
+    if (frame.narrow || !titleBox.w) return 0;
+    const cx = frame.w - titleBox.right - titleBox.w / 2;
+    const y = (beamY(cx / frame.unit, frame.pageW) - (BOTTOM - frame.height)) * frame.unit;
+    return Math.max(0, y - titleBox.h / 2 - COLUMN_TOP);
+  })();
   const reserveRight = columnPx / frame.unit;
   const active = members.filter((m) => m.active).length;
 
@@ -157,8 +179,8 @@ export const App: React.FC = () => {
       </svg>
 
       <aside className="column" style={frame.narrow ? undefined : { width: columnPx }}>
-        <header className="title">
-          <a href="#/explorers" className="wordmark">
+        <header className="title" style={{ marginTop: titleTop }}>
+          <a ref={wordmark} href="#/explorers" className="wordmark">
             Free Explorers
           </a>
           <p className="tagline">Funding the open-source projects of tomorrow</p>

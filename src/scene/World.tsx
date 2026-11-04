@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Lighthouse, lighthouseFoot, lighthouseHeight, type LighthouseVariant } from "./Lighthouse";
+import { LAST_BEAM, Lighthouse, lighthouseFoot, lighthouseHeight, type LighthouseVariant } from "./Lighthouse";
 import { OutpostBack, TowerDetails } from "./Outpost";
 import { BOAT_SPEC } from "./Boat";
 import { Fleet } from "./Fleet";
@@ -23,6 +23,16 @@ const K = LIGHTHOUSE_HEIGHT / (lighthouseHeight(LH_VARIANT) * LH_SCALE);
 const QUAY_END = 2950;
 
 export const islandX = (pageW: number) => Math.min(200, pageW * 0.2);
+// Where the lit beam's centre line crosses world x `x` (on the first page): the title sits
+// on it.
+export const beamY = (x: number, pageW: number) => {
+  const toWorld = (lx: number, ly: number) => ({
+    x: islandX(pageW) + (lx - 116) * LH_SCALE * K,
+    y: WATER + ((ly - lighthouseFoot(LH_VARIANT)) * LH_SCALE - ISLAND_RISE) * K,
+  });
+  const p = toWorld(LAST_BEAM.x, LAST_BEAM.y);
+  return p.y + ((x - p.x) * LAST_BEAM.dy) / LAST_BEAM.dx;
+};
 export const islandRight = (pageW: number) => islandX(pageW) + QUAY_END * K;
 
 const Island: React.FC<{ x: number; time: number }> = ({ x, time }) => (

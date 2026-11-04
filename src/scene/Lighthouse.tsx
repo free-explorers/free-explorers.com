@@ -78,6 +78,12 @@ const pillLight = (time: number, on: number) => {
 
 export const BEAM_STEP = 15; // frames between one ray's beam and the next (a half-beat, an eighth note)
 export const BEAM_COUNT = RAYS.length;
+// The beam that stays lit (the last of the sweep): a point on its centre line and its
+// direction, in the logo's units.
+export const LAST_BEAM = (() => {
+  const r = RAYS[RAYS.length - 1];
+  return { x: r.cx, y: r.cy, dx: r.dx, dy: r.dy };
+})();
 const BEAM_LENGTH = 2600;
 
 // The beam in flat style, like the bulb's halo: nested wedges of solid pale light, a wide
