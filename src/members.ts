@@ -11,14 +11,14 @@ export type BoatKind = "dinghy" | "sloop" | "brig" | "galleon";
 export const BOATS: { id: BoatKind; name: string; range: string; min: number; max: number | null; color: string }[] = [
   { id: "galleon", name: "Galleon", range: "$500+", min: 500, max: null, color: "#f9c46b" },
   { id: "brig", name: "Brigantine", range: "$50–450", min: 50, max: 450, color: "#cba6f7" },
-  { id: "sloop", name: "Sloop", range: "$15–40", min: 15, max: 40, color: "#89dceb" },
-  { id: "dinghy", name: "Dinghy", range: "$1–10", min: 1, max: 10, color: "#a6e3a1" },
+  { id: "sloop", name: "Sloop", range: "$10–40", min: 10, max: 40, color: "#89dceb" },
+  { id: "dinghy", name: "Dinghy", range: "$1–5", min: 1, max: 5, color: "#a6e3a1" },
 ];
 export const boatInfo = (id: BoatKind) => BOATS.find((b) => b.id === id)!;
 const RANK: Record<BoatKind, number> = { galleon: 3, brig: 2, sloop: 1, dinghy: 0 };
 // The boat for a contribution per month (or a one-time gift): amounts between the slider's
 // ranges go to the smaller boat.
-export const boatFor = (amount: number): BoatKind => (amount >= 500 ? "galleon" : amount >= 50 ? "brig" : amount >= 15 ? "sloop" : "dinghy");
+export const boatFor = (amount: number): BoatKind => (amount >= 500 ? "galleon" : amount >= 50 ? "brig" : amount >= 10 ? "sloop" : "dinghy");
 
 export type Member = {
   id: string;
