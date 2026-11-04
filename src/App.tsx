@@ -114,24 +114,13 @@ export const App: React.FC = () => {
   const reduced = useReducedMotion();
   const [page, setPage] = useState<PageId>(pageFromHash);
   const index = PAGES.findIndex((p) => p.id === page);
-  // Restart the sweep when the camera arrives back at the lighthouse.
-  const [sweep, setSweep] = useState(0);
-  const first = useRef(true);
   useEffect(() => {
     const onHash = () => setPage(pageFromHash());
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
-  useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
-    if (page !== "explorers") return;
-    const t = setTimeout(() => setSweep((s) => s + 1), reduced ? 0 : SLIDE_MS * 0.6);
-    return () => clearTimeout(t);
-  }, [page, reduced]);
-  const beamTime = useBeamSweep(sweep, reduced);
+  // The beams sweep once, when the site opens; navigating doesn't replay them.
+  const beamTime = useBeamSweep(0, reduced);
 
   // Under the sea, with the submarines (the dive button, or the up/down arrow keys).
   const [dived, setDived] = useState(false);
