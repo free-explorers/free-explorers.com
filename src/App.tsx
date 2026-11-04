@@ -73,6 +73,29 @@ const useReducedMotion = () => {
 };
 
 const SLIDE_MS = 1400;
+// The depth shown under the sea, in metres.
+const DEPTH_M = 40;
+// Counts the gauge from 0 to DEPTH_M as the camera dives (in step with the slide), and back.
+const useDepthGauge = (dived: boolean, reduced: boolean) => {
+  const [depth, setDepth] = useState(0);
+  useEffect(() => {
+    const target = dived ? DEPTH_M : 0;
+    if (reduced) return setDepth(target);
+    let raf = 0;
+    const from = depth;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / SLIDE_MS);
+      const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      setDepth(Math.round(from + (target - from) * e));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dived, reduced]);
+  return depth;
+};
 // The column's top padding (see .column).
 const COLUMN_TOP = 40;
 
@@ -117,14 +140,22 @@ export const App: React.FC = () => {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLElement && e.target.closest("input, textarea")) return;
-      if (e.key === "ArrowDown") setDived(true);
+      if (e.key === "ArrowDown" && page === "explorers") setDived(true);
       if (e.key === "ArrowUp") setDived(false);
+      // Under the sea, there's nowhere to go sideways: the depths are under the first page.
+      if (dived) return;
       const next = e.key === "ArrowRight" ? index + 1 : e.key === "ArrowLeft" ? index - 1 : -1;
       if (next >= 0 && next < PAGES.length) window.location.hash = `/${PAGES[next].id}`;
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [index]);
+  }, [index, page, dived]);
+  // The depths are only under the first page: leaving it surfaces.
+  useEffect(() => {
+    if (page !== "explorers") setDived(false);
+  }, [page]);
+  // The depth gauge counts down as the camera dives, and back up as it surfaces.
+  const depth = useDepthGauge(dived, reduced);
 
   // No slide animation while the window is being resized (the page width changes).
   const [resizing, setResizing] = useState(false);
@@ -209,14 +240,25 @@ export const App: React.FC = () => {
         </svg>
       </div>
       {/* Dive under the sea, or surface: a porthole button at the bottom */}
-      <button type="button" className={`dive${dived ? " dive-up" : ""}`} onClick={() => setDived((d) => !d)} aria-label={dived ? "Surface" : "Dive under the sea"}>
+      {/* Under the sea, only a depth gauge at the top */}
+      <div className={`depth-gauge${dived ? " depth-gauge-on" : ""}`} aria-hidden={!dived}>
+        <span className="depth-label">Depth</span>
+        <span className="depth-value">{depth} m</span>
+      </div>
+      <button
+        type="button"
+        className={`dive${dived ? " dive-up" : ""}`}
+        hidden={page !== "explorers"}
+        onClick={() => setDived((d) => !d)}
+        aria-label={dived ? "Surface" : "Dive under the sea"}
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d={dived ? "M12 19V5M6 11l6-6 6 6" : "M12 5v14M6 13l6 6 6-6"} />
         </svg>
         <span>{dived ? "Surface" : `Dive · ${below} below`}</span>
       </button>
 
-      <aside className="column" style={frame.narrow ? undefined : { width: columnPx }}>
+      <aside className={`column${dived ? " column-hidden" : ""}`} style={frame.narrow ? undefined : { width: columnPx }} inert={dived} aria-hidden={dived}>
         <header className="title" style={{ marginTop: titleTop }}>
           <a ref={wordmark} href="#/explorers" className="wordmark">
             Free Explorers
@@ -232,19 +274,7 @@ export const App: React.FC = () => {
           ))}
         </nav>
         <div className="panels">
-          <Panel on={dived}>
-            <h2>Under the sea</h2>
-            <p>
-              One-time donors and former monthly explorers cruise down here in submarines, each sized by all they've given. Thank you, every one of you.
-            </p>
-            <p className="count">
-              <strong>{below}</strong> {below === 1 ? "submarine" : "submarines"} below
-            </p>
-            <button type="button" className="cta" onClick={() => setJoin(null)}>
-              Come up and join the fleet
-            </button>
-          </Panel>
-          <Panel on={!dived && page === "explorers"}>
+          <Panel on={page === "explorers"}>
             <p>
               The Free Explorers are an <a href={COLLECTIVE}>Open Collective</a> funding and building open-source projects. Every boat on this sea is an Explorer
               backing the people who build them: the Architects.
@@ -259,7 +289,7 @@ export const App: React.FC = () => {
             </div>
             <BoatLegend members={members} onPick={setJoin} />
           </Panel>
-          <Panel on={!dived && page === "veshell"}>
+          <Panel on={page === "veshell"}>
             <h2>Veshell</h2>
             <p className="lead">Stop managing windows. Start exploring.</p>
             <p>
@@ -275,7 +305,7 @@ export const App: React.FC = () => {
               </a>
             </div>
           </Panel>
-          <Panel on={!dived && page === "architects"}>
+          <Panel on={page === "architects"}>
             <h2>Architects</h2>
             <p>
               Architects dedicate their time to building the technologies of tomorrow. The collective funds them, so projects are delivered with care and

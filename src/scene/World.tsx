@@ -18,7 +18,7 @@ export const BOTTOM = 1000;
 // nearest boats show at its top) and goes one frame height down.
 export const DIVE_TOP = BOTTOM - 70;
 // Submarines below: at most this many (the biggest givers), for a big collective.
-const MAX_SUBS = 45;
+const MAX_SUBS = 30;
 
 // The island: the teaser's lighthouse and church, drawn in the teaser's "house" units around
 // the lighthouse's foot, scaled into the world.
@@ -357,7 +357,8 @@ export const World: React.FC<{
       <SeaFront x0={x0} x1={x1} />
       {/* Under the sea: the depths, and the submarines */}
       <Depths x0={x0} x1={x1} top={BOTTOM + 2} bottom={deep} rock={{ x0: x0, x1: islandRight(pageW) * 0.55 }} />
-      <SubFleet members={below} seaW={pageW * pages} top={BOTTOM + 110} bottom={deep - 230} visible={dived} page={page} pageW={pageW} />
+      {/* The depths are under the first page only */}
+      <SubFleet members={below} seaW={pageW} top={BOTTOM + 110} bottom={deep - 230} visible={dived} page={page} pageW={pageW} />
     </g>
   );
 };
