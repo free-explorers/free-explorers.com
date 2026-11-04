@@ -95,12 +95,15 @@ export const Fleet: React.FC<{ slots: Slot[]; seaW: number; page: number; pageW:
       const dir: 1 | -1 = Math.random() < 0.5 ? 1 : -1;
       const lanes = KIND_LANES[s.member.boat];
       // Start in the boat's own band (former explorers stay on the horizon).
-      const start = s.member.active ? Math.min(lanes[1], Math.max(lanes[0], s.y)) : s.y;
+      // Scattered from the start: a depth drawn like a lane change (leaning to the type's
+      // usual depth, sometimes anywhere), and a nudge sideways, so the fleet isn't in rows.
+      const start = s.member.active ? pickLane({ former: false, lanes }) : s.y;
+      const startX = s.x + rand(-1, 1) * Math.min(120, half * 2);
       next.set(
         s.member.id,
         prev
           ? { ...prev, shrink, half, lanes }
-          : { x: s.x, y: start, dir, speed: rand(0.6, 1.3), lane: start, lanes, nextChange: now + rand(4, 16), shrink, half, former: !s.member.active, held: false },
+          : { x: startX, y: start, dir, speed: rand(0.6, 1.3), lane: start, lanes, nextChange: now + rand(4, 16), shrink, half, former: !s.member.active, held: false },
       );
     }
     sims.current = next;
