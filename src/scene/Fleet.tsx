@@ -95,9 +95,11 @@ export const Fleet: React.FC<{ slots: Slot[]; seaW: number; page: number; pageW:
     p.root.setAttribute("transform", `translate(${sim.x.toFixed(2)} ${sim.y.toFixed(2)})`);
     p.boat.setAttribute("transform", `scale(${(sim.dir * s).toFixed(4)} ${s.toFixed(4)})`);
     p.label.setAttribute("transform", `translate(0 ${(-p.top * s - 14).toFixed(1)})`);
-    // Keep the avatar the right way round when the boat sails left.
-    const cx = Number(p.avatar?.dataset.cx ?? 0);
-    p.avatar?.setAttribute("transform", sim.dir < 0 ? `translate(${2 * cx} 0) scale(-1 1)` : "");
+    // Keep the avatar and the name the right way round when the boat sails left.
+    for (const el of p.unflip) {
+      const cx = Number(el.dataset.cx ?? 0);
+      el.setAttribute("transform", sim.dir < 0 ? `translate(${2 * cx} 0) scale(-1 1)` : "");
+    }
   };
 
   const register = useCallback(

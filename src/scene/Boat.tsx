@@ -80,7 +80,7 @@ const Avatar: React.FC<{ at: Spot; color: string; image?: string | null; name: s
     .slice(0, 2)
     .toUpperCase();
   return (
-    <g className="avatar" data-cx={at.cx}>
+    <g className="unflip" data-cx={at.cx}>
       <defs>
         <clipPath id={`av-${uid}`}>
           <circle cx={at.cx} cy={at.cy} r={at.r} />
@@ -110,6 +110,22 @@ const Avatar: React.FC<{ at: Spot; color: string; image?: string | null; name: s
 };
 
 // `forSale` (galleon only): moored, sails furled, a FOR SALE board on the main mast.
+// The donor's name painted along the hull in cream capitals, squeezed to fit if long. It
+// carries data-cx like the avatar so the fleet keeps it readable when the boat sails left.
+const HullName: React.FC<{ name: string; x: number; y: number; size: number; max: number }> = ({ name, x, y, size, max }) => {
+  const text = name.toUpperCase();
+  const squeeze = text.length * size * 0.62 > max ? { textLength: max, lengthAdjust: "spacingAndGlyphs" as const } : {};
+  return (
+    <g className="unflip" data-cx={x}>
+      <text x={x} y={y} dy="0.36em" textAnchor="middle" fontSize={size} fontWeight={800} letterSpacing={size * 0.06} fill={SAIL} fontFamily="Outfit, 'Helvetica Neue', Arial, sans-serif" {...squeeze}>
+        {text}
+      </text>
+    </g>
+  );
+};
+// Name size on each boat's hull.
+const NAME_SIZE: Record<BoatKind, number> = { dinghy: 12, sloop: 15, brig: 19, galleon: 24 };
+
 type ShapeProps = { kind: BoatKind; active?: boolean; image?: string | null; name?: string; uid: string; forSale?: boolean };
 
 export const BoatShape: React.FC<ShapeProps> = (props) => (props.kind === "galleon" ? <Galleon {...props} /> : <Sailboat {...props} />);
@@ -155,6 +171,7 @@ const Sailboat: React.FC<ShapeProps> = ({ kind, active = true, image, name = "",
         <rect x={aft.x - L * 0.36} y={deck - 18} width={L * 0.36} height={8} rx={4} fill={SAIL_SHADE} />
       )}
       <Hull L={L} />
+      {name && <HullName name={name} x={-L * 0.04} y={deck * 0.38} size={NAME_SIZE[kind]} max={L * 0.66} />}
       <Avatar at={avatarAt} color={color} image={image} name={name} uid={uid} />
     </g>
   );
@@ -235,11 +252,10 @@ const Galleon: React.FC<ShapeProps> = ({ active: sailing = true, image, name = "
         {[D + 22, D + 52, D + 80].map((y) => (
           <rect key={y} x={-260} y={y} width={520} height={3} fill={WOOD_LINE} />
         ))}
-        {/* Gold band, and the gun ports under it */}
+        {/* Gold band, and the gun ports under it (the sponsor's name takes their place) */}
         <rect x={-260} y={D + 8} width={520} height={7} fill={GOLD} />
-        {Array.from({ length: 8 }, (_, k) => (
-          <rect key={k} x={-96 + k * 38} y={D + 26} width={16} height={14} rx={2} fill="#2a1a10" />
-        ))}
+        {!name &&
+          Array.from({ length: 8 }, (_, k) => <rect key={k} x={-96 + k * 38} y={D + 26} width={16} height={14} rx={2} fill="#2a1a10" />)}
         {/* Stern castle: lit windows */}
         {[0, 1, 2].map((k) => (
           <rect key={k} x={-224 + k * 34} y={C + 14} width={20} height={22} rx={6} fill="#ffd66b" />
@@ -247,6 +263,7 @@ const Galleon: React.FC<ShapeProps> = ({ active: sailing = true, image, name = "
         <rect x={-260} y={C + 44} width={160} height={5} fill={GOLD} />
         <rect x={-260} y={-1} width={520} height={60} fill={WOOD_DARK} opacity={0.55} />
       </g>
+      {name && !forSale && <HullName name={name} x={50} y={D + 34} size={NAME_SIZE.galleon} max={300} />}
       {/* Rails along the castle and the deck */}
       <path d={`M -240 ${C} L -118 ${C} M -118 ${D} L 200 ${D} L 246 ${D - 22}`} stroke={WOOD_DARK} strokeWidth={6} strokeLinecap="round" fill="none" />
       {forSale ? (
@@ -269,7 +286,8 @@ const Galleon: React.FC<ShapeProps> = ({ active: sailing = true, image, name = "
 // A member's boat on the sea, bobbing, linking to their profile, with their name on hover.
 // The fleet moves it: `parts` hands it the groups to transform (position, the boat's scale
 // and heading, the label's height) and `onHold` pauses it while it's pointed at.
-export type BoatParts = { root: SVGGElement; boat: SVGGElement; label: SVGGElement; avatar: SVGGElement | null; top: number };
+// `unflip`: the parts kept the right way round when the boat sails left (avatar, name).
+export type BoatParts = { root: SVGGElement; boat: SVGGElement; label: SVGGElement; unflip: SVGGElement[]; top: number };
 export const MemberBoat: React.FC<{
   member: Member;
   delay: number;
@@ -282,7 +300,7 @@ export const MemberBoat: React.FC<{
   const boat = useRef<SVGGElement>(null);
   const label = useRef<SVGGElement>(null);
   useLayoutEffect(() => {
-    parts({ root: root.current!, boat: boat.current!, label: label.current!, avatar: boat.current!.querySelector<SVGGElement>(".avatar"), top });
+    parts({ root: root.current!, boat: boat.current!, label: label.current!, unflip: [...boat.current!.querySelectorAll<SVGGElement>(".unflip")], top });
     return () => parts(null);
   }, [parts, top]);
   return (
