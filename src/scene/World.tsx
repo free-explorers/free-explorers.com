@@ -115,14 +115,20 @@ const hash = (s: string) => {
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
   return ((h >>> 0) % 1000) / 1000;
 };
-export const layoutFleet = (members: Member[], pageW: number, reserveRight: number): Slot[] => {
+// Former explorers on the horizon: the biggest ones, so a big collective's sea isn't cluttered.
+const MAX_FORMER = 40;
+export const layoutFleet = (members: Member[], pageW: number, reserveRight: number, pages = 1): Slot[] => {
   const left = 30;
-  const right = pageW - 30 - reserveRight;
   const active = members.filter((m) => m.active);
-  const former = members.filter((m) => !m.active);
-  for (let shrink = 1; shrink > 0.2; shrink *= 0.85) {
+  const former = members.filter((m) => !m.active).slice(0, MAX_FORMER);
+  // A small fleet starts on the home page; a bigger one over the whole sea (every page); a very
+  // big one overlaps rather than leaving boats out.
+  const spans = [pageW - 30 - reserveRight, pageW * pages - 30];
+  const layout = (right: number, shrink: number, force: boolean): Slot[] | null => {
     const slots: Slot[] = [];
-    const queue = [...active];
+    // Over the whole sea, boats of every size are mixed (stable order), so each page gets
+    // its share of big and small ones.
+    const queue = right > pageW ? [...active].sort((m, n) => hash(m.id + "o") - hash(n.id + "o")) : [...active];
     ROWS.forEach((row, r) => {
       const s = row.scale * shrink;
       const placed: Member[] = [];
@@ -130,39 +136,48 @@ export const layoutFleet = (members: Member[], pageW: number, reserveRight: numb
       // Rows behind the front one keep clear of the island's rock on the left.
       const rowLeft = r === 0 ? left : left + 60 * r;
       const rowRight = right;
-      while (queue.length) {
+      // When forced, the rows share every boat left between them.
+      const share = force ? Math.ceil(queue.length / (ROWS.length - r)) : Infinity;
+      while (queue.length && placed.length < share) {
         const w = boatLength(queue[0].boat) * 1.35 * s;
-        if (width + w > rowRight - rowLeft) break;
+        if (!force && width + w > rowRight - rowLeft) break;
         width += w;
         placed.push(queue.shift()!);
       }
       // Spread the row's boats evenly over its width, centred on their gaps.
       const gap = (rowRight - rowLeft - width) / (placed.length + 1);
-      let x = rowLeft + gap;
+      const step = force && gap < 0 ? (rowRight - rowLeft) / Math.max(1, placed.length) : 0;
+      let x = rowLeft + Math.max(gap, 0);
       placed.forEach((m, i) => {
         const w = boatLength(m.boat) * 1.35 * s;
-        const j = (hash(m.id) - 0.5) * Math.min(gap, 80);
-        slots.push({ member: m, x: x + w / 2 + j, y: row.y + (i % 2) * 10 * s, scale: s, delay: hash(m.id + "d") * 6, shrink });
-        x += w + gap;
+        const j = (hash(m.id) - 0.5) * Math.min(Math.max(gap, 0), 80);
+        slots.push({ member: m, x: step ? rowLeft + step * (i + 0.5) : x + w / 2 + j, y: row.y + (i % 2) * 10 * s, scale: s, delay: hash(m.id + "d") * 6, shrink });
+        x += w + Math.max(gap, 0);
       });
     });
-    let ok = queue.length === 0;
+    if (queue.length) return null;
     // The horizon, past the quay.
     const hs = HORIZON.scale * shrink;
     const hLeft = islandRight(pageW) + 20;
     const hRight = right;
     const hw = former.reduce((a, m) => a + boatLength(m.boat) * 1.4 * hs, 0);
-    if (hw > hRight - hLeft) ok = false;
-    const hgap = (hRight - hLeft - hw) / (former.length + 1);
+    if (!force && hw > hRight - hLeft) return null;
+    const hgap = Math.max(0, (hRight - hLeft - hw) / (former.length + 1));
+    const hstep = hw > hRight - hLeft ? (hRight - hLeft) / Math.max(1, former.length) : 0;
     let hx = hLeft + hgap;
-    former.forEach((m) => {
+    former.forEach((m, i) => {
       const w = boatLength(m.boat) * 1.4 * hs;
-      slots.push({ member: m, x: hx + w / 2, y: HORIZON.y, scale: hs, delay: hash(m.id + "d") * 6, shrink });
+      slots.push({ member: m, x: hstep ? hLeft + hstep * (i + 0.5) : hx + w / 2, y: HORIZON.y, scale: hs, delay: hash(m.id + "d") * 6, shrink });
       hx += w + hgap;
     });
-    if (ok) return slots.sort((a, b) => a.y - b.y);
-  }
-  return [];
+    return slots.sort((a, b) => a.y - b.y);
+  };
+  for (const right of spans)
+    for (let shrink = 1; shrink > 0.45; shrink *= 0.85) {
+      const slots = layout(right, shrink, false);
+      if (slots) return slots;
+    }
+  return layout(spans[spans.length - 1], 0.45, true)!;
 };
 
 // The Veshell house-boat, exported from the teaser as a static drawing.
@@ -290,7 +305,7 @@ export const World: React.FC<{
 }> = ({ pageW, pages, members, beamTime, reserveRight, page, onPick }) => {
   const x0 = -pageW;
   const x1 = pageW * (pages + 1);
-  const fleet = useMemo(() => layoutFleet(members, pageW, reserveRight), [members, pageW, reserveRight]);
+  const fleet = useMemo(() => layoutFleet(members, pageW, reserveRight, pages), [members, pageW, reserveRight, pages]);
   const usable = pageW - reserveRight;
   return (
     <g>

@@ -4,7 +4,11 @@ import snapshot from "./data/members.snapshot.json";
 // Open Collective members of the Free Explorers, one boat each. The boat follows how much
 // the member gives: a dinghy, a sloop, a brigantine, or a galleon for enterprise sponsors.
 export const COLLECTIVE = "https://opencollective.com/free-explorers";
-const MEMBERS_URL = `${COLLECTIVE}/members/all.json`;
+// Preview with another collective's members (`?collective=webpack`), for testing the sea with
+// a big fleet. Links and the checkout stay the Free Explorers'.
+const PREVIEW = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("collective")?.replace(/[^a-z0-9-]/gi, "") || null : null;
+const SLUG = PREVIEW ?? "free-explorers";
+const MEMBERS_URL = `https://opencollective.com/${SLUG}/members/all.json`;
 
 export type BoatKind = "dinghy" | "sloop" | "brig" | "galleon";
 // Amounts are per month (a yearly contribution counts for a twelfth of it); `max` null is open.
@@ -93,7 +97,7 @@ export const toMembers = (raw: Raw[]): Member[] => {
 // their active recurring contribution if any, else their latest paid one; yearly counts for
 // a twelfth. Keyed by profile slug.
 type Order = { status: string; frequency: "MONTHLY" | "YEARLY" | "ONETIME"; amount: { value: number }; fromAccount: { slug: string } };
-const ORDERS_QUERY = `{ account(slug: "free-explorers") { orders(filter: INCOMING, limit: 1000) { nodes { status frequency amount { value } fromAccount { slug } } } } }`;
+const ORDERS_QUERY = `{ account(slug: "${SLUG}") { orders(filter: INCOMING, limit: 1000) { nodes { status frequency amount { value } fromAccount { slug } } } } }`;
 const perMonth = (o: Order) => (o.frequency === "YEARLY" ? o.amount.value / 12 : o.amount.value);
 const monthlyAmounts = (orders: Order[]) => {
   const out = new Map<string, number>();
@@ -117,7 +121,7 @@ const withMonthly = (members: Member[], monthly: Map<string, number>) =>
 // Starts from the bundled snapshot and swaps in the live list once it arrives. `refresh`
 // fetches it again (after someone joins), past any cache.
 export const useMembers = () => {
-  const [members, setMembers] = useState(() => toMembers(snapshot as Raw[]));
+  const [members, setMembers] = useState(() => (PREVIEW ? [] : toMembers(snapshot as Raw[])));
   const refresh = useCallback(() => {
     const list = fetch(`${MEMBERS_URL}?t=${Date.now()}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status)));
     Promise.all([list, fetchOrders().catch(() => [] as Order[])])
