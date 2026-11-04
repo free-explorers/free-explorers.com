@@ -170,7 +170,8 @@ export const App: React.FC = () => {
 
   // How far the camera goes down when diving, in px, and the slide's timing (shared by the scene
   // and the column, which scrolls up with it).
-  const diveY = dived ? Math.round((frame.height - (BOTTOM - DIVE_TOP)) * frame.unit) : 0;
+  const diveDepth = Math.round((frame.height - (BOTTOM - DIVE_TOP)) * frame.unit);
+  const diveY = dived ? diveDepth : 0;
   const slide = resizing || reduced ? "none" : `transform ${SLIDE_MS}ms cubic-bezier(0.65, 0, 0.35, 1)`;
   // The text column's width, in world units, so the scene keeps clear of it.
   const columnPx = frame.narrow ? 0 : Math.min(440, frame.w * 0.34);
@@ -244,6 +245,30 @@ export const App: React.FC = () => {
         </svg>
       </div>
       {/* Dive under the sea, or surface: a porthole button at the bottom */}
+      {/* The underwater card: in the depths, on the right, rising into view with the dive */}
+      <section
+        className="depth-card panel"
+        style={{
+          top: diveDepth + (frame.narrow ? 110 : 140),
+          ...(frame.narrow ? {} : { width: columnPx - 48 }),
+          transform: `translateY(${-diveY}px)`,
+          transition: slide,
+        }}
+        inert={!dived}
+        aria-hidden={!dived}
+      >
+        <h2>Under the sea</h2>
+        <p>
+          Down here cruise the explorers who gave once, and those who used to give every month. Each submarine is sized by all its explorer has given: thank you,
+          every one of you.
+        </p>
+        <p className="count">
+          <strong>{below}</strong> {below === 1 ? "submarine" : "submarines"} below
+        </p>
+        <button type="button" className="cta" onClick={() => setJoin(null)}>
+          Come up and join the fleet
+        </button>
+      </section>
       {/* Dive: a button at the bottom that, as the camera dives, travels to the top of the screen
           and morphs into the depth gauge with a Surface arrow */}
       <button

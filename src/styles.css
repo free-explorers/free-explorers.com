@@ -783,3 +783,18 @@ a:focus-visible {
   border-left: 1px solid rgba(217, 164, 65, 0.5);
   font-size: 14px;
 }
+
+/* The underwater card (positioned and moved by App). */
+.depth-card {
+  position: absolute;
+  right: 48px;
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+@media (max-width: 759px) {
+  .depth-card {
+    left: 16px;
+    right: 16px;
+  }
+}
