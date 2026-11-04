@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import snapshot from "./data/members.snapshot.json";
 
 // Open Collective members of the Free Explorers, one boat each. The boat's size follows the
@@ -70,17 +70,77 @@ export const toMembers = (raw: Raw[]): Member[] => {
 };
 
 // Starts from the bundled snapshot and swaps in the live list once it arrives.
+// Starts from the bundled snapshot and swaps in the live list once it arrives. `refresh`
+// fetches it again (after someone joins), past any cache.
 export const useMembers = () => {
   const [members, setMembers] = useState(() => toMembers(snapshot as Raw[]));
-  useEffect(() => {
-    let alive = true;
-    fetch(MEMBERS_URL)
+  const refresh = useCallback(() => {
+    fetch(`${MEMBERS_URL}?t=${Date.now()}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((raw: Raw[]) => alive && setMembers(toMembers(raw)))
+      .then((raw: Raw[]) => setMembers(toMembers(raw)))
       .catch(() => {});
-    return () => {
-      alive = false;
-    };
   }, []);
-  return members;
+  useEffect(refresh, [refresh]);
+  return { members, refresh };
+};
+
+// What each tier costs and where its checkout is, read live from Open Collective (with the
+// values as of writing as a fallback).
+export type Offer = {
+  tier: Tier;
+  name: string;
+  amount: number;
+  currency: string;
+  frequency: "MONTHLY" | "YEARLY" | "ONETIME";
+  // Whether contributors can pick their own amount (the amount is then a suggestion).
+  flexible: boolean;
+  // The tier's path segment in Open Collective URLs ("member-80808").
+  path: string;
+};
+const OFFERS_FALLBACK: Offer[] = [
+  { tier: "founder", name: "Founder Explorer", amount: 20, currency: "USD", frequency: "MONTHLY", flexible: false, path: "member-80808" },
+  { tier: "yearly", name: "Yearly Explorer", amount: 50, currency: "USD", frequency: "YEARLY", flexible: true, path: "yearly-explorer-80806" },
+  { tier: "monthly", name: "Monthly Explorer", amount: 10, currency: "USD", frequency: "MONTHLY", flexible: true, path: "flexible-80809" },
+  { tier: "once", name: "One-time support", amount: 100, currency: "USD", frequency: "ONETIME", flexible: true, path: "one-time-support-80807" },
+];
+const TIERS_QUERY = `{ account(slug: "free-explorers") { ... on AccountWithContributions { tiers { nodes { name slug legacyId frequency amountType amount { value currency } } } } } }`;
+type RawTier = { name: string; slug: string; legacyId: number; frequency: Offer["frequency"]; amountType: string; amount: { value: number; currency: string } };
+
+export const useOffers = () => {
+  const [offers, setOffers] = useState(OFFERS_FALLBACK);
+  useEffect(() => {
+    fetch("https://api.opencollective.com/graphql/v2", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: TIERS_QUERY }),
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((res: { data: { account: { tiers: { nodes: RawTier[] } } } }) => {
+        const live = res.data.account.tiers.nodes.map(
+          (t): Offer => ({
+            tier: t.frequency === "ONETIME" ? "once" : tierOf(t.name),
+            name: t.name,
+            amount: t.amount.value,
+            currency: t.amount.currency,
+            frequency: t.frequency,
+            flexible: t.amountType === "FLEXIBLE",
+            path: `${t.slug}-${t.legacyId}`,
+          }),
+        );
+        const rank = (o: Offer) => TIERS.findIndex((t) => t.id === o.tier);
+        if (live.length) setOffers(live.sort((a, b) => rank(a) - rank(b)));
+      })
+      .catch(() => {});
+  }, []);
+  return offers;
+};
+
+// The tier's checkout, embeddable in an iframe, without Open Collective's own header and FAQ.
+export const checkoutUrl = (offer: Offer) => `https://opencollective.com/embed/free-explorers/contribute/${offer.path}?hideHeader=true&hideFAQ=true`;
+export const checkoutPageUrl = (offer: Offer) => `${COLLECTIVE}/contribute/${offer.path}/checkout`;
+
+export const formatPrice = (o: Offer) => {
+  const money = new Intl.NumberFormat("en", { style: "currency", currency: o.currency, maximumFractionDigits: 0 }).format(o.amount);
+  const per = o.frequency === "MONTHLY" ? " / month" : o.frequency === "YEARLY" ? " / year" : " once";
+  return `${money}${per}`;
 };

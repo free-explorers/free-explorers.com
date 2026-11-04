@@ -2,7 +2,8 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BEAM_COUNT, BEAM_STEP } from "./scene/Lighthouse";
 import { BOTTOM, World, beamY } from "./scene/World";
 import { BoatShape } from "./scene/Boat";
-import { COLLECTIVE, TIERS, useMembers, type Member } from "./members";
+import { COLLECTIVE, TIERS, useMembers, useOffers, type Member, type Tier } from "./members";
+import { JoinFleet } from "./JoinFleet";
 
 // The site is one long sea: each page is a stretch of it, and the menu slides the camera
 // along to the page's stretch. The title and the menu stay put on the right.
@@ -77,7 +78,16 @@ const COLUMN_TOP = 40;
 
 export const App: React.FC = () => {
   const frame = useFrame();
-  const members = useMembers();
+  const { members, refresh } = useMembers();
+  const offers = useOffers();
+  // The join panel: undefined closed, null on the choice of boats, or a tier's checkout.
+  const [join, setJoin] = useState<Tier | null | undefined>(undefined);
+  // After joining, fetch the fleet again now and once more a little later (Open Collective
+  // can take a moment to list a new member).
+  const refreshFleet = React.useCallback(() => {
+    refresh();
+    setTimeout(refresh, 8000);
+  }, [refresh]);
   const reduced = useReducedMotion();
   const [page, setPage] = useState<PageId>(pageFromHash);
   const index = PAGES.findIndex((p) => p.id === page);
@@ -203,11 +213,11 @@ export const App: React.FC = () => {
               <p className="count">
                 <strong>{active}</strong> explorers at sea
               </p>
-              <a className="cta" href={`${COLLECTIVE}/contribute`} target="_blank" rel="noreferrer">
+              <button type="button" className="cta" onClick={() => setJoin(null)}>
                 Join the fleet
-              </a>
+              </button>
             </div>
-            <TierLegend members={members} />
+            <TierLegend members={members} onPick={setJoin} />
           </Panel>
           <Panel on={page === "veshell"}>
             <h2>Veshell</h2>
@@ -245,6 +255,15 @@ export const App: React.FC = () => {
           ))}
         </footer>
       </aside>
+      <JoinFleet
+        open={join}
+        offers={offers}
+        onJoined={refreshFleet}
+        onClose={() => {
+          setJoin(undefined);
+          refreshFleet();
+        }}
+      />
     </div>
   );
 };
@@ -255,18 +274,21 @@ const Panel: React.FC<{ on: boolean; children: React.ReactNode }> = ({ on, child
   </section>
 );
 
-// The tiers and the boat each one sails, with how many explorers sail it now.
-const TierLegend: React.FC<{ members: Member[] }> = ({ members }) => (
+// The tiers and the boat each one sails, with how many explorers sail it now; each one
+// opens its checkout.
+const TierLegend: React.FC<{ members: Member[]; onPick: (tier: Tier) => void }> = ({ members, onPick }) => (
   <ul className="legend">
     {TIERS.map((t) => {
       const n = members.filter((m) => m.active && m.tier === t.id).length;
       return (
         <li key={t.id}>
-          <svg viewBox="-170 -330 340 360" aria-hidden="true">
-            <BoatShape tier={t.id} uid={`legend-${t.id}`} />
-          </svg>
-          <span>{t.name}</span>
-          <span className="legend-n">{n}</span>
+          <button type="button" onClick={() => onPick(t.id)} aria-label={`Join as a ${t.name}`}>
+            <svg viewBox="-170 -330 340 360" aria-hidden="true">
+              <BoatShape tier={t.id} uid={`legend-${t.id}`} />
+            </svg>
+            <span>{t.name}</span>
+            <span className="legend-n">{n}</span>
+          </button>
         </li>
       );
     })}
