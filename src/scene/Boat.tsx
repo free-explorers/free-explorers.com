@@ -2,11 +2,15 @@ import React, { useLayoutEffect, useRef, useState } from "react";
 import { boatInfo, type BoatKind, type Member } from "../members";
 import { Bob } from "./Motion";
 
-// A member's boat, in the flat style of the teaser's house-boat: a wooden hull, cream sails
-// and a pennant in the boat's colour. The member's avatar is painted on the main sail.
-// Dinghy, sloop and brigantine are sailing boats of growing size; enterprise sponsors sail a
-// galleon (square-rigged, three masts, a stern castle). Drawn with the waterline at y 0,
-// centred on x 0, bow to the right, in world units at full scale.
+// A member's boat, in the flat style of the teaser's house-boat: a wooden hull, cream sails,
+// pennants in the boat's colour, the donor's name on the hull and their logo on the boat:
+//  dinghy      one mast, a triangular main sail and a jib; the logo on a flag at the stern;
+//  sloop       one mast, a four-sided gaff sail behind it and a jib; the logo on the gaff sail;
+//  brigantine  a main mast amidships with big square sails, a rear mast with a triangular
+//              sail, a jib; the logo on the big square sail;
+//  galleon     three masts (enterprise sponsors); the logo on the main course.
+// Drawn with the waterline at y 0, centred on x 0, bow to the right, in world units at full
+// scale.
 
 const WOOD = "#a9744f";
 const WOOD_LINE = "#8a5b3b";
@@ -21,8 +25,8 @@ type Spec = { L: number; masts: Mast[]; jib: boolean };
 export const BOAT_SPEC: Record<BoatKind, Spec> = {
   // The galleon is drawn by its own component; its masts here only give its height.
   galleon: { L: 440, masts: [{ x: -10, h: 330 }], jib: true },
-  brig: { L: 300, masts: [{ x: -55, h: 290 }, { x: 60, h: 230 }], jib: true },
-  sloop: { L: 205, masts: [{ x: 0, h: 220 }], jib: true },
+  brig: { L: 300, masts: [{ x: -95, h: 190 }, { x: 30, h: 280 }], jib: true },
+  sloop: { L: 205, masts: [{ x: 10, h: 220 }], jib: true },
   dinghy: { L: 130, masts: [{ x: 4, h: 140 }], jib: false },
 };
 // How much bigger each boat is drawn on the sea than its plan (the galleon stands out).
@@ -61,23 +65,11 @@ const Hull: React.FC<{ L: number }> = ({ L }) => {
   );
 };
 
-// A main sail behind a mast, bellied out towards the stern; returns the sail and the circle
-// that fits inside it (for the avatar).
 // A triangular sail behind a mast (luff on the mast, foot on a boom), and its shaded half.
 const triangleSail = (x: number, head: number, foot: number, w: number) =>
   `M ${x} ${head} L ${x} ${foot} L ${x - w} ${foot} Q ${x - w * 0.36} ${(head + foot) / 2 + 6} ${x} ${head} Z`;
 const triangleShade = (x: number, head: number, foot: number, w: number) =>
   `M ${x} ${head} L ${x - w * 0.5} ${foot} L ${x - w} ${foot} Q ${x - w * 0.36} ${(head + foot) / 2 + 6} ${x} ${head} Z`;
-
-const mainSail = (mast: Mast, deck: number, width: number) => {
-  const top = deck - mast.h + 8;
-  const foot = deck - 12;
-  const x = mast.x - 3;
-  const d = `M ${x} ${top} L ${x} ${foot} L ${x - width} ${foot} Q ${x - width * 0.38} ${(top + foot) / 2 + 6} ${x} ${top} Z`;
-  const a = foot - top;
-  const r = (a + width - Math.hypot(a, width)) / 2;
-  return { d, foot, width, avatar: { cx: x - r * 0.95, cy: foot - r * 1.05, r: r * 0.78 } };
-};
 
 // The member's avatar in a ring of the boat's colour (initials until the picture loads, or
 // if there's none). `data-cx` lets the fleet mirror it back when the boat sails left.
@@ -141,73 +133,213 @@ type ShapeProps = { kind: BoatKind; active?: boolean; image?: string | null; nam
 
 export const BoatShape: React.FC<ShapeProps> = (props) => (props.kind === "galleon" ? <Galleon {...props} /> : <Sailboat {...props} />);
 
-const Sailboat: React.FC<ShapeProps> = ({ kind, active = true, image, name = "", uid }) => {
-  const { L, masts, jib } = BOAT_SPEC[kind];
-  const color = boatInfo(kind).color;
-  const deck = -L * 0.14;
-  const bow = { x: L / 2 + L * 0.05, y: deck * 1.3 };
-  const aft = masts[0];
-  // Sail widths: the aft mast's sail reaches back over the stern, the fore mast's sail fills
-  // the gap between the two masts.
-  const sails = masts.map((m, i) => mainSail(m, deck, i === 0 ? Math.min(L * 0.4, m.x + L / 2 - 6) : m.x - masts[i - 1].x - 12));
-  const fore = masts[masts.length - 1];
-  const avatarAt = active ? sails[0].avatar : { cx: -L * 0.2, cy: deck * 0.5, r: L * 0.055 };
+type Box = { x: number; y: number; w: number; h: number };
+const initialsOf = (name: string) =>
+  name
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+// A square sail on a mast: a little narrower at the head, barely bellied, the right half in
+// shade, on its yard. Returns its outline too (for a logo printed on it).
+const squareSail = (x: number, top: number, bottom: number, topHw: number, bottomHw: number) => {
+  const belly = (bottom - top) * 0.08;
+  return {
+    d: `M ${x - topHw} ${top} L ${x + topHw} ${top} L ${x + bottomHw} ${bottom} Q ${x} ${bottom + belly} ${x - bottomHw} ${bottom} Z`,
+    shade: `M ${x} ${top} L ${x + topHw} ${top} L ${x + bottomHw} ${bottom} Q ${x + bottomHw * 0.5} ${bottom + belly * 0.8} ${x} ${bottom + belly} Z`,
+    yard: { x: x - topHw - Math.max(5, topHw * 0.1), y: top - 3, w: topHw * 2 + Math.max(10, topHw * 0.2) },
+  };
+};
+const SquareSail: React.FC<{ x: number; top: number; bottom: number; topHw: number; bottomHw: number }> = (p) => {
+  const s = squareSail(p.x, p.top, p.bottom, p.topHw, p.bottomHw);
   return (
     <g>
-      {/* Masts and rigging */}
-      {masts.map((m, i) => (
-        <g key={i}>
-          <rect x={m.x - 2.5} y={deck - m.h} width={5} height={m.h} rx={2} fill={WOOD_DARK} />
-          <line x1={m.x} y1={deck - m.h} x2={-L / 2 + 4} y2={deck} stroke={ROPE} strokeWidth={1.2} opacity={0.7} />
-          {/* Pennant in the boat's colour */}
-          <path d={`M ${m.x + 2} ${deck - m.h} L ${m.x + 2 + L * 0.12} ${deck - m.h + 6} L ${m.x + 2} ${deck - m.h + 13} Z`} fill={color} />
-        </g>
-      ))}
-      <line x1={fore.x} y1={deck - fore.h} x2={bow.x} y2={bow.y} stroke={ROPE} strokeWidth={1.2} opacity={0.7} />
-      {active ? (
-        <>
-          {sails.map((s, i) => (
-            <path key={i} d={s.d} fill={i === 0 ? SAIL : SAIL_SHADE} />
-          ))}
-          {jib && (
-            <path d={`M ${fore.x + 3} ${deck - fore.h + 22} L ${bow.x - L * 0.06} ${bow.y - 6} L ${fore.x + 3} ${deck - 12} Z`} fill={SAIL_SHADE} />
+      <path d={s.d} fill={SAIL} />
+      <path d={s.shade} fill={SAIL_SHADE} />
+      <rect x={s.yard.x} y={s.yard.y} width={s.yard.w} height={5} rx={2.5} fill={WOOD_DARK} />
+    </g>
+  );
+};
+// A triangular sail behind a mast, with its boom.
+const TriangleSail: React.FC<{ x: number; head: number; foot: number; w: number }> = ({ x, head, foot, w }) => (
+  <g>
+    <path d={triangleSail(x, head, foot, w)} fill={SAIL} />
+    <path d={triangleShade(x, head, foot, w)} fill={SAIL_SHADE} />
+    <rect x={x - w - 3} y={foot} width={w + 3} height={3.5} rx={1.5} fill={WOOD_DARK} />
+  </g>
+);
+// A sail furled along its boom or yard.
+const Furled: React.FC<{ x: number; y: number; w: number; h?: number }> = ({ x, y, w, h = 8 }) => <rect x={x} y={y - h / 2} width={w} height={h} rx={h / 2} fill={SAIL_SHADE} />;
+
+// A flag on a staff at the stern, flying aft, the logo as its cloth (cream through its
+// transparent parts); without a logo, the boat's colour with the donor's initials.
+const SternFlag: React.FC<{ staffX: number; deck: number; L: number; color: string; image?: string | null; name: string; uid: string }> = ({ staffX, deck, L, color, image, name, uid }) => {
+  const [broken, setBroken] = useState(false);
+  const top = { x: staffX - L * 0.06, y: deck - L * 0.5 };
+  const w = L * 0.3;
+  const h = L * 0.26;
+  const a = h * 0.09;
+  const x = top.x;
+  const y = top.y;
+  const d = `M ${x} ${y} C ${x - w * 0.33} ${y - a} ${x - w * 0.66} ${y + a} ${x - w} ${y} L ${x - w} ${y + h} C ${x - w * 0.66} ${y + h + a} ${x - w * 0.33} ${y + h - a} ${x} ${y + h} Z`;
+  const logo = image && !broken;
+  return (
+    <g>
+      <line x1={staffX} y1={deck} x2={top.x} y2={top.y - 2} stroke={WOOD_DARK} strokeWidth={Math.max(2.5, L * 0.018)} strokeLinecap="round" />
+      <defs>
+        <clipPath id={`stern-flag-${uid}`}>
+          <path d={d} />
+        </clipPath>
+      </defs>
+      <path d={d} fill={logo ? SAIL : color} />
+      <g clipPath={`url(#stern-flag-${uid})`}>
+        <g className="unflip" data-cx={x - w / 2}>
+          {logo ? (
+            <image href={image} x={x - w} y={y - a} width={w} height={h + a * 2} preserveAspectRatio="xMidYMid slice" onError={() => setBroken(true)} />
+          ) : (
+            <text x={x - w / 2} y={y + h / 2} dy="0.36em" textAnchor="middle" fontSize={h * 0.46} fontWeight={800} fill={SAIL} fontFamily="Outfit, 'Helvetica Neue', Arial, sans-serif">
+              {initialsOf(name)}
+            </text>
           )}
-          {/* Booms */}
-          {sails.map((s, i) => (
-            <rect key={i} x={masts[i].x - s.width - 3} y={s.foot} width={s.width + 3} height={3.5} rx={1.5} fill={WOOD_DARK} />
-          ))}
-        </>
-      ) : (
-        // Former explorers: sails furled along the boom, at rest on the horizon.
-        <rect x={aft.x - L * 0.36} y={deck - 18} width={L * 0.36} height={8} rx={4} fill={SAIL_SHADE} />
-      )}
-      <Hull L={L} />
-      {name && <HullName name={name} x={-L * 0.04} y={deck * 0.38} size={NAME_SIZE[kind]} max={L * 0.66} />}
-      <Avatar at={avatarAt} color={color} image={image} name={name} uid={uid} />
+        </g>
+        {/* Folds in the cloth, and the hem along the staff */}
+        <rect x={x - w * 0.62} y={y - a} width={w * 0.14} height={h + a * 2} fill="#000" opacity={0.1} />
+        <rect x={x - w * 0.3} y={y - a} width={w * 0.1} height={h + a * 2} fill="#fff" opacity={0.12} />
+        <rect x={x - w * 0.06} y={y - a} width={w * 0.06} height={h + a * 2} fill={SAIL_SHADE} />
+      </g>
     </g>
   );
 };
 
-// The galleon (enterprise sponsors), sleek: a low stern castle with lit windows, a gold band;
-// a main mast with two big square sails, a jib on the bowsprit, a triangular rear sail on the
-// mizzen over the castle, pennants in the boat's colour. The sponsor's avatar is on the main
+const Sailboat: React.FC<ShapeProps> = ({ kind, active = true, image, name = "", uid }) => {
+  const { L, masts } = BOAT_SPEC[kind];
+  const color = boatInfo(kind).color;
+  const deck = -L * 0.14;
+  const foot = deck - 12;
+  const bow = { x: L / 2 + L * 0.05, y: deck * 1.3 };
+  const main = masts[masts.length - 1];
+  const mainTop = deck - main.h;
+  const jibClewX = kind === "brig" ? bow.x - L * 0.12 : main.x + 3;
+  // The jib on the forestay: from high on the main mast to the bow (the brigantine's to the
+  // end of a bowsprit).
+  const tack = kind === "brig" ? { x: bow.x + L * 0.14, y: bow.y - L * 0.04 } : { x: bow.x - L * 0.06, y: bow.y - 6 };
+  const jibAt = kind === "brig" ? 0.4 : 0.12;
+  const jibHead = { x: main.x + (tack.x - main.x) * jibAt, y: mainTop + (tack.y - mainTop) * jibAt };
+  let sails: React.ReactNode = null;
+  let furled: React.ReactNode = null;
+  let logo: React.ReactNode = null;
+
+  if (kind === "dinghy") {
+    const w = Math.min(L * 0.4, main.x + L / 2 - 6);
+    sails = <TriangleSail x={main.x - 3} head={mainTop + 8} foot={foot} w={w} />;
+    furled = <Furled x={main.x - 3 - w} y={foot - 4} w={w} />;
+    logo = <SternFlag staffX={-L / 2 + 8} deck={deck} L={L} color={color} image={image} name={name} uid={uid} />;
+  } else if (kind === "sloop") {
+    // The gaff sail: luff on the mast, a gaff from the throat up to the peak, the leech down
+    // to the boom's end.
+    const x0 = main.x - 3;
+    const w = Math.min(L * 0.44, x0 + L / 2 - 6);
+    const throat = mainTop + 36;
+    const peak = { x: x0 - w * 0.86, y: mainTop + 8 };
+    const d = `M ${x0} ${foot} L ${x0} ${throat} L ${peak.x} ${peak.y} Q ${x0 - w * 1.02} ${(peak.y + foot) / 2} ${x0 - w} ${foot} Z`;
+    const shade = `M ${peak.x} ${peak.y} Q ${x0 - w * 1.02} ${(peak.y + foot) / 2} ${x0 - w} ${foot} L ${x0 - w * 0.42} ${foot} Z`;
+    sails = (
+      <g>
+        <path d={d} fill={SAIL} />
+        <path d={shade} fill={SAIL_SHADE} />
+        <line x1={x0} y1={throat} x2={peak.x - 4} y2={peak.y - 1} stroke={WOOD_DARK} strokeWidth={3.5} strokeLinecap="round" />
+        <rect x={x0 - w - 3} y={foot} width={w + 3} height={3.5} rx={1.5} fill={WOOD_DARK} />
+      </g>
+    );
+    furled = <Furled x={x0 - w} y={foot - 4} w={w} />;
+    const area: Box = { x: x0 - w * 0.84, y: throat + 4, w: w * 0.78, h: foot - throat - 12 };
+    logo = <SailLogo sail={d} area={area} image={image} name={name} uid={uid} nameless />;
+  } else {
+    // Brigantine: the rear mast's triangular sail, the main mast's big square sails.
+    const rear = masts[0];
+    const rw = Math.min(L * 0.2, rear.x + L / 2 - 6);
+    const course = { top: deck - 142, bottom: deck - 26, topHw: 72, bottomHw: 82 };
+    const topsail = { top: deck - 264, bottom: deck - 154, topHw: 52, bottomHw: 66 };
+    const c = squareSail(main.x, course.top, course.bottom, course.topHw, course.bottomHw);
+    sails = (
+      <g>
+        <TriangleSail x={rear.x - 3} head={deck - rear.h + 8} foot={foot} w={rw} />
+        <SquareSail x={main.x} {...topsail} />
+        <SquareSail x={main.x} {...course} />
+      </g>
+    );
+    furled = (
+      <g>
+        <Furled x={rear.x - 3 - rw} y={foot - 4} w={rw} />
+        <Furled x={main.x - topsail.topHw - 6} y={topsail.top} w={topsail.topHw * 2 + 12} h={10} />
+        <Furled x={main.x - course.topHw - 6} y={course.top} w={course.topHw * 2 + 12} h={10} />
+      </g>
+    );
+    const area: Box = { x: main.x - course.topHw * 0.86, y: course.top + 8, w: course.topHw * 1.72, h: course.bottom - course.top - 12 };
+    logo = <SailLogo sail={c.d} area={area} image={image} name={name} uid={uid} nameless />;
+  }
+
+  return (
+    <g>
+      {/* Bowsprit (brigantine), forestay and backstay */}
+      {kind === "brig" && <line x1={bow.x - 8} y1={bow.y + 2} x2={tack.x} y2={tack.y} stroke={WOOD_DARK} strokeWidth={4} strokeLinecap="round" />}
+      <line x1={main.x} y1={mainTop} x2={tack.x} y2={tack.y} stroke={ROPE} strokeWidth={1.2} opacity={0.7} />
+      <line x1={masts[0].x} y1={deck - masts[0].h} x2={-L / 2 + 4} y2={deck} stroke={ROPE} strokeWidth={1.2} opacity={0.7} />
+      {masts.length > 1 && <line x1={masts[0].x} y1={deck - masts[0].h} x2={main.x} y2={mainTop + 30} stroke={ROPE} strokeWidth={1.2} opacity={0.7} />}
+      {/* Masts and pennants */}
+      {masts.map((m, i) => (
+        <g key={i}>
+          <rect x={m.x - 2.5 - L / 300} y={deck - m.h} width={5 + L / 150} height={m.h} rx={2} fill={WOOD_DARK} />
+          <path d={`M ${m.x + 2} ${deck - m.h} L ${m.x + 2 + L * 0.12} ${deck - m.h + 6} L ${m.x + 2} ${deck - m.h + 13} Z`} fill={color} />
+        </g>
+      ))}
+      {active ? (
+        <>
+          {sails}
+          <path d={`M ${jibHead.x} ${jibHead.y} L ${tack.x - 3} ${tack.y + 1} L ${jibClewX} ${foot - 2} Z`} fill={SAIL_SHADE} />
+        </>
+      ) : (
+        furled
+      )}
+      <Hull L={L} />
+      {name && <HullName name={name} x={-L * 0.04} y={deck * 0.38} size={NAME_SIZE[kind]} max={L * 0.66} />}
+      {active ? logo : <Avatar at={{ cx: -L * 0.2, cy: deck * 0.5, r: L * 0.055 }} color={color} image={image} name={name} uid={uid} />}
+    </g>
+  );
+};
+
+// The galleon (enterprise sponsors), sleek, three masts: a low stern castle with lit windows,
+// a gold band; a triangular rear sail on the mizzen over the castle, a main mast with two big
+// square sails, a smaller triangular sail on the foremast and a jib on the bowsprit, pennants
+// in the boat's colour. The sponsor's avatar is on the main
 // course, their name along the hull. Former sponsors (and the galleon for sale) have their
 // sails furled on the yards.
-const GALLEON = { deck: 62, castle: 36, main: { x: -20, h: 340 }, mizzen: { x: -170, h: 190 } };
+const GALLEON = { deck: 62, castle: 36, main: { x: -20, h: 340 }, mizzen: { x: -170, h: 190 }, fore: { x: 132, h: 250 } };
 const GALLEON_SAILS = [
-  { top: -GALLEON.deck - 170, bottom: -GALLEON.deck - 34, topHw: 100, bottomHw: 112 },
-  { top: -GALLEON.deck - 316, bottom: -GALLEON.deck - 182, topHw: 76, bottomHw: 94 },
+  { top: -GALLEON.deck - 170, bottom: -GALLEON.deck - 34, topHw: 90, bottomHw: 100 },
+  { top: -GALLEON.deck - 316, bottom: -GALLEON.deck - 182, topHw: 70, bottomHw: 86 },
 ];
 
 // The sponsor's logo printed whole across the main course (fitted, never cropped); their name
 // painted there if they have no logo, or a "YOUR LOGO" placeholder when there's no sponsor
 // yet (the join panel's preview). Kept readable when the galleon sails left (data-cx).
-const SailLogo: React.FC<{ sail: string; area: { x: number; y: number; w: number; h: number }; image?: string | null; name: string; uid: string }> = ({ sail, area, image, name, uid }) => {
+// `nameless`: without a logo, leave the sail plain (the name is on the hull).
+const SailLogo: React.FC<{ sail: string; area: { x: number; y: number; w: number; h: number }; image?: string | null; name: string; uid: string; nameless?: boolean }> = ({
+  sail,
+  area,
+  image,
+  name,
+  uid,
+  nameless = false,
+}) => {
   const [broken, setBroken] = useState(false);
   const cx = area.x + area.w / 2;
   const cy = area.y + area.h / 2;
   const text = name.toUpperCase();
-  const size = 30;
+  const size = Math.min(30, area.h * 0.36);
+  const inset = Math.min(10, area.w * 0.06);
   return (
     <g className="unflip" data-cx={cx}>
       <defs>
@@ -218,7 +350,7 @@ const SailLogo: React.FC<{ sail: string; area: { x: number; y: number; w: number
       <g clipPath={`url(#sail-logo-${uid})`}>
         {image && !broken ? (
           <image href={image} x={area.x} y={area.y} width={area.w} height={area.h} preserveAspectRatio="xMidYMid meet" onError={() => setBroken(true)} />
-        ) : name ? (
+        ) : nameless && name ? null : name ? (
           <text
             x={cx}
             y={cy}
@@ -234,8 +366,18 @@ const SailLogo: React.FC<{ sail: string; area: { x: number; y: number; w: number
           </text>
         ) : (
           <g>
-            <rect x={area.x + 10} y={area.y + 10} width={area.w - 20} height={area.h - 20} rx={10} fill="none" stroke={WOOD_LINE} strokeWidth={3} strokeDasharray="10 8" />
-            <text x={cx} y={cy} dy="0.36em" textAnchor="middle" fontSize={24} fontWeight={800} fill={WOOD_LINE} fontFamily="Outfit, 'Helvetica Neue', Arial, sans-serif">
+            <rect x={area.x + inset} y={area.y + inset} width={area.w - inset * 2} height={area.h - inset * 2} rx={inset} fill="none" stroke={WOOD_LINE} strokeWidth={Math.max(1.5, inset * 0.3)} strokeDasharray={`${inset} ${inset * 0.8}`} />
+            <text
+              x={cx}
+              y={cy}
+              dy="0.36em"
+              textAnchor="middle"
+              fontSize={Math.min(24, area.h * 0.24)}
+              fontWeight={800}
+              fill={WOOD_LINE}
+              fontFamily="Outfit, 'Helvetica Neue', Arial, sans-serif"
+              {...("YOUR LOGO".length * Math.min(24, area.h * 0.24) * 0.62 > area.w - inset * 3 ? { textLength: area.w - inset * 3, lengthAdjust: "spacingAndGlyphs" as const } : {})}
+            >
               YOUR LOGO
             </text>
           </g>
@@ -250,14 +392,15 @@ const Galleon: React.FC<ShapeProps> = ({ active: sailing = true, image, name = "
   const color = boatInfo("galleon").color;
   const D = -GALLEON.deck;
   const C = D - GALLEON.castle;
-  const { main, mizzen } = GALLEON;
+  const { main, mizzen, fore } = GALLEON;
   const top = D - main.h;
   const mizzenTop = C - mizzen.h;
+  const foreTop = D - fore.h;
   const hull = `M -238 ${C} L -118 ${C} L -118 ${D} L 200 ${D} L 246 ${D - 22} Q 205 40 150 44 L -160 44 Q -222 32 -238 ${C} Z`;
   const sprit = { x: 330, y: D - 66 };
-  // The forestay from the masthead to the bowsprit's end, which the jib is set on.
-  const stay = (t: number) => ({ x: main.x + (sprit.x - main.x) * t, y: top + (sprit.y - top) * t });
-  const jibHead = stay(0.3);
+  // The forestay from the foremast's head to the bowsprit's end, which the jib is set on.
+  const stay = (t: number) => ({ x: fore.x + (sprit.x - fore.x) * t, y: foreTop + (sprit.y - foreTop) * t });
+  const jibHead = stay(0.18);
   const jibTack = stay(0.97);
   const course = GALLEON_SAILS[0];
   // Former sponsors (sails furled): a small avatar on the stern castle.
@@ -269,7 +412,8 @@ const Galleon: React.FC<ShapeProps> = ({ active: sailing = true, image, name = "
     <g>
       {/* Bowsprit and stays */}
       <line x1={232} y1={D - 16} x2={sprit.x} y2={sprit.y} stroke={WOOD_DARK} strokeWidth={6} strokeLinecap="round" />
-      <line x1={main.x} y1={top} x2={sprit.x} y2={sprit.y} stroke={ROPE} strokeWidth={1.5} opacity={0.8} />
+      <line x1={fore.x} y1={foreTop} x2={sprit.x} y2={sprit.y} stroke={ROPE} strokeWidth={1.5} opacity={0.8} />
+      <line x1={main.x} y1={top} x2={fore.x} y2={foreTop + 20} stroke={ROPE} strokeWidth={1.5} opacity={0.8} />
       <line x1={mizzen.x} y1={mizzenTop} x2={main.x} y2={top + 40} stroke={ROPE} strokeWidth={1.5} opacity={0.8} />
       {/* Shrouds on the main mast */}
       {[-60, -36, 16, 40].map((dx) => (
@@ -279,6 +423,7 @@ const Galleon: React.FC<ShapeProps> = ({ active: sailing = true, image, name = "
       {[
         { x: mizzen.x, top: mizzenTop, h: mizzen.h, w: 7, flag: 66 },
         { x: main.x, top, h: main.h, w: 9, flag: 90 },
+        { x: fore.x, top: foreTop, h: fore.h, w: 7, flag: 66 },
       ].map((m, i) => (
         <g key={i}>
           <rect x={m.x - m.w / 2} y={m.top} width={m.w} height={m.h} rx={3} fill={WOOD_DARK} />
@@ -303,8 +448,9 @@ const Galleon: React.FC<ShapeProps> = ({ active: sailing = true, image, name = "
               </g>
             );
           })}
-          {/* The jib */}
-          <path d={`M ${jibHead.x} ${jibHead.y} L ${jibTack.x - 4} ${jibTack.y + 2} L 172 ${D - 26} Z`} fill={SAIL_SHADE} />
+          {/* The smaller triangular sail on the foremast, and the jib */}
+          <TriangleSail x={fore.x - 3} head={foreTop + 16} foot={D - 14} w={70} />
+          <path d={`M ${jibHead.x} ${jibHead.y} L ${jibTack.x - 4} ${jibTack.y + 2} L ${fore.x + 34} ${D - 24} Z`} fill={SAIL_SHADE} />
         </>
       ) : (
         // Sails furled: rolled on the yards and the rear boom.
@@ -313,6 +459,7 @@ const Galleon: React.FC<ShapeProps> = ({ active: sailing = true, image, name = "
             <rect key={i} x={main.x - s.topHw - 8} y={s.top - 6} width={s.topHw * 2 + 16} height={12} rx={6} fill={SAIL_SHADE} />
           ))}
           <rect x={mizzen.x - 74} y={C - 20} width={71} height={9} rx={4.5} fill={SAIL_SHADE} />
+          <rect x={fore.x - 76} y={D - 20} width={73} height={9} rx={4.5} fill={SAIL_SHADE} />
         </g>
       )}
       {/* Hull */}

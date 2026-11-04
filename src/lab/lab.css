@@ -63,3 +63,6 @@ body {
 .lab-cells-big {
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
 }
+.lab-cells-fleet {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}

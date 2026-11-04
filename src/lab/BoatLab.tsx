@@ -79,6 +79,26 @@ const Cell: React.FC<{ kind: BoatKind; label: string; current?: boolean; wide?: 
 export const BoatLab: React.FC = () => (
   <main className="lab">
     <header>
+      <h1>Fleet</h1>
+      <p>The site's boats: dinghy (logo on a stern flag), sloop (logo on the gaff sail), brigantine (logo on the big square sail), galleon (three masts, logo on the main sail). Top row with a logo, bottom row without.</p>
+    </header>
+    {[true, false].map((withLogo) => (
+      <section key={String(withLogo)} className="lab-row">
+        <div className="lab-cells lab-cells-fleet">
+          {KINDS.map((kind) => {
+            const donor = withLogo ? CLOTH_DONOR[kind] : { name: NO_LOGO, image: undefined };
+            return (
+              <Cell key={kind} kind={kind} label={`${BOATS.find((b) => b.id === kind)!.name}${withLogo ? ` · ${donor.name}` : " · no logo"}`} frame={kind === "galleon" ? G2_FRAME : undefined} wide={kind !== "galleon"}>
+                <Bob deg={kind === "galleon" ? 0.8 : 1.4}>
+                  <BoatShape kind={kind} image={donor.image} name={donor.name} uid={`fleet-${kind}-${withLogo}`} />
+                </Bob>
+              </Cell>
+            );
+          })}
+        </div>
+      </section>
+    ))}
+    <header className="lab-later">
       <h1>Galleon rework</h1>
       <p>The sleek style: the site's flat look on a lower hull, two big square sails and a jib; then with a rear sail, and with three masts. The current galleon first, for comparison.</p>
     </header>

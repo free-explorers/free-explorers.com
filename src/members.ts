@@ -70,7 +70,8 @@ export const toMembers = (raw: Raw[]): Member[] => {
     const next: Member = {
       id: m.profile,
       name: m.name,
-      image: m.image ?? `https://images.opencollective.com/${m.profile.split("/").pop()}/avatar/128.png`,
+      // Only a picture or logo the member uploaded (not Open Collective's generated initials).
+      image: m.image ?? null,
       profile: m.profile,
       boat: boatFor(amount),
       amount,
