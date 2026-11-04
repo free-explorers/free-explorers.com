@@ -1,0 +1,60 @@
+:root {
+  color-scheme: dark;
+}
+body {
+  margin: 0;
+  background: #10222d;
+  color: #f4f1ea;
+  font: 400 15px/1.5 "Outfit", "Helvetica Neue", Arial, sans-serif;
+}
+.lab {
+  padding: 28px 24px 60px;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+.lab header h1 {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 800;
+}
+.lab header p {
+  margin: 4px 0 24px;
+  color: #b9d3dd;
+}
+.lab-grid {
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  overflow-x: auto;
+}
+.lab-col {
+  align-self: end;
+  text-align: center;
+  padding-bottom: 4px;
+}
+.lab-col span {
+  color: #b9d3dd;
+  font-size: 13px;
+}
+.lab-row-head h2 {
+  margin: 8px 0 2px;
+  font-size: 19px;
+}
+.lab-row-head p {
+  margin: 0;
+  color: #b9d3dd;
+  font-size: 13px;
+}
+.lab-cell svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+.lab-current {
+  opacity: 0.75;
+}
+.lab-row-head.lab-current + .lab-cell,
+.lab-cell.lab-current {
+  margin-bottom: 18px;
+}
