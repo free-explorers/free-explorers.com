@@ -1,10 +1,10 @@
 import React, { useMemo } from "react";
 import { LAST_BEAM, Lighthouse, lighthouseFoot, lighthouseHeight, type LighthouseVariant } from "./Lighthouse";
 import { OutpostBack, TowerDetails } from "./Outpost";
-import { BOAT_SPEC } from "./Boat";
+import { BOAT_SPEC, BoatShape } from "./Boat";
 import { Fleet } from "./Fleet";
 import { Bob, Flutter, Slide } from "./Motion";
-import type { Member } from "../members";
+import { BOATS, type BoatKind, type Member } from "../members";
 import boatMeta from "../data/veshell-boat.json";
 
 // The world, in units where the frame is 1000 tall at its reference size (it gets taller on
@@ -231,6 +231,49 @@ const Jetty: React.FC<{ x: number; architects: { name: string; image: string; ur
 
 export const ARCHITECTS = [{ name: "PapyElGringo", image: "https://github.com/PapyElGringo.png?size=160", url: "https://github.com/PapyElGringo" }];
 
+// While no enterprise sponsor sails one, a galleon waits moored at the lighthouse's quay,
+// sails furled, for sale: pointing at it explains, clicking it opens the join panel on the
+// galleon. Its stern is made fast to the quay's mooring post.
+const POST = { x: 2820, top: -270 }; // the quay's mooring post, in house units around the lighthouse's foot
+const GalleonForSale: React.FC<{ pageW: number; onPick: () => void }> = ({ pageW, onPick }) => {
+  const scale = 0.4;
+  const x = islandRight(pageW) + 220 * scale + 16;
+  const y = ISLAND_WATER + 4;
+  const post = { x: islandX(pageW) + POST.x * K, y: ISLAND_WATER + (POST.top + ISLAND_RISE - ISLAND_RISE) * K };
+  const sternRing = { x: x - 225 * scale, y: y - 70 * scale };
+  const galleon = BOATS.find((b) => b.id === "galleon")!;
+  return (
+    <a
+      href="#join"
+      className="boat"
+      aria-label={`Galleon for sale: ready to set sail for its first enterprise sponsor, ${galleon.range} a month`}
+      onClick={(e) => {
+        e.preventDefault();
+        onPick();
+      }}
+    >
+      {/* Mooring line from the post to the stern */}
+      <path d={`M ${post.x} ${post.y} Q ${(post.x + sternRing.x) / 2} ${Math.max(post.y, sternRing.y) + 10} ${sternRing.x} ${sternRing.y}`} stroke="#c9a46b" strokeWidth={1.6} fill="none" />
+      <g transform={`translate(${x} ${y}) scale(${scale})`}>
+        <Bob dur={7} dy={3} deg={0.5}>
+          <BoatShape kind="galleon" uid="for-sale" forSale />
+        </Bob>
+      </g>
+      <g className="boat-label" transform={`translate(${x} ${y - 460 * scale - 40})`}>
+        <text textAnchor="middle" className="boat-name">
+          Galleon for sale
+        </text>
+        <text textAnchor="middle" y={22} className="boat-tier">
+          Ready to set sail for its first enterprise sponsor
+        </text>
+        <text textAnchor="middle" y={42} className="boat-tier">
+          {galleon.range} / month · click to take the helm
+        </text>
+      </g>
+    </a>
+  );
+};
+
 export const World: React.FC<{
   pageW: number;
   pages: number;
@@ -238,9 +281,11 @@ export const World: React.FC<{
   beamTime: number;
   // The page in view (boats only turn about out of sight).
   page: number;
+  // Opens the join panel on a boat.
+  onPick: (boat: BoatKind) => void;
   // Width of the text column on the right, in world units (kept clear on each page).
   reserveRight: number;
-}> = ({ pageW, pages, members, beamTime, reserveRight, page }) => {
+}> = ({ pageW, pages, members, beamTime, reserveRight, page, onPick }) => {
   const x0 = -pageW;
   const x1 = pageW * (pages + 1);
   const fleet = useMemo(() => layoutFleet(members, pageW, reserveRight), [members, pageW, reserveRight]);
@@ -262,9 +307,10 @@ export const World: React.FC<{
       <Streaks x0={x0} x1={x1} />
       {/* The explorers' boats, sailing across every page: those further out than the
           island's foot pass behind the scenery, the others in front of it */}
-      <Fleet slots={fleet} seaW={pageW * pages} page={page} pageW={pageW} splitY={ISLAND_WATER}>
+      <Fleet slots={fleet} seaW={pageW * pages} page={page} pageW={pageW} splitY={ISLAND_WATER + 25}>
         {/* Page 1: the lighthouse on its island, and the water lapping at its foot */}
         <Island x={islandX(pageW)} time={beamTime} />
+        {!members.some((m) => m.active && m.boat === "galleon") && <GalleonForSale pageW={pageW} onPick={() => onPick("galleon")} />}
         <Slide dx={WAVE_LEN} dur={6}>
           <path d={swell(ISLAND_WATER + 4, 3, x0 - WAVE_LEN, islandRight(pageW) + 80, 40)} fill="url(#sea)" />
         </Slide>

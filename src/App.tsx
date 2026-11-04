@@ -188,7 +188,7 @@ export const App: React.FC = () => {
           role="img"
           aria-label="The Free Explorers lighthouse church by the sea, with a boat for every member of the collective"
         >
-          <World pageW={frame.pageW} pages={PAGES.length} members={members} beamTime={beamTime} reserveRight={reserveRight} page={index} />
+          <World pageW={frame.pageW} pages={PAGES.length} members={members} beamTime={beamTime} reserveRight={reserveRight} page={index} onPick={setJoin} />
         </svg>
       </div>
 

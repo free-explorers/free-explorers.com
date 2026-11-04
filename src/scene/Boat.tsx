@@ -109,7 +109,8 @@ const Avatar: React.FC<{ at: Spot; color: string; image?: string | null; name: s
   );
 };
 
-type ShapeProps = { kind: BoatKind; active?: boolean; image?: string | null; name?: string; uid: string };
+// `forSale` (galleon only): moored, sails furled, a FOR SALE board on the main mast.
+type ShapeProps = { kind: BoatKind; active?: boolean; image?: string | null; name?: string; uid: string; forSale?: boolean };
 
 export const BoatShape: React.FC<ShapeProps> = (props) => (props.kind === "galleon" ? <Galleon {...props} /> : <Sailboat {...props} />);
 
@@ -166,7 +167,8 @@ const GALLEON = { deck: 62, castle: 116 };
 const squareSail = (x: number, top: number, bottom: number, hw: number) =>
   `M ${x - hw} ${top} L ${x + hw} ${top} Q ${x + hw * 1.1} ${(top + bottom) / 2} ${x + hw * 0.94} ${bottom} Q ${x} ${bottom + 12} ${x - hw * 0.94} ${bottom} Q ${x - hw * 1.1} ${(top + bottom) / 2} ${x - hw} ${top} Z`;
 
-const Galleon: React.FC<ShapeProps> = ({ active = true, image, name = "", uid }) => {
+const Galleon: React.FC<ShapeProps> = ({ active: sailing = true, image, name = "", uid, forSale = false }) => {
+  const active = sailing && !forSale;
   const color = boatInfo("galleon").color;
   const D = -GALLEON.deck;
   const C = -GALLEON.castle;
@@ -247,7 +249,19 @@ const Galleon: React.FC<ShapeProps> = ({ active = true, image, name = "", uid })
       </g>
       {/* Rails along the castle and the deck */}
       <path d={`M -240 ${C} L -118 ${C} M -118 ${D} L 200 ${D} L 246 ${D - 22}`} stroke={WOOD_DARK} strokeWidth={6} strokeLinecap="round" fill="none" />
-      <Avatar at={avatarAt} color={color} image={image} name={name} uid={uid} />
+      {forSale ? (
+        // A wooden board hung from the main lower yard.
+        <g>
+          <line x1={main.x - 46} y1={D - 150} x2={main.x - 40} y2={D - 128} stroke={ROPE} strokeWidth={2} />
+          <line x1={main.x + 46} y1={D - 150} x2={main.x + 40} y2={D - 128} stroke={ROPE} strokeWidth={2} />
+          <rect x={main.x - 62} y={D - 130} width={124} height={50} rx={6} fill="#f4f1ea" stroke={WOOD_DARK} strokeWidth={4} />
+          <text x={main.x} y={D - 105} dy="0.36em" textAnchor="middle" fontSize={26} fontWeight={800} fill="#7a2e1d" letterSpacing={1}>
+            FOR SALE
+          </text>
+        </g>
+      ) : (
+        <Avatar at={avatarAt} color={color} image={image} name={name} uid={uid} />
+      )}
     </g>
   );
 };
