@@ -2,24 +2,26 @@ import React, { memo, useCallback, useEffect, useLayoutEffect, useRef, useState 
 import type { Member } from "../members";
 
 // The submarines of one-time donors and former monthly/yearly donors, cruising under the sea:
-// old-style, riveted copper hulls with a conning tower, a periscope, a propeller and a lit
+// old-style wooden hulls with copper fittings (bands, nose, conning tower, fins), a conning tower, a periscope, a propeller and a lit
 // headlight; the donor's picture in the big brass porthole, their name on the hull. Each is
 // sized by all its donor has given. Drawn centred on (0, 0), bow to the right; full size is
 // SUB_LENGTH long.
 
 export const SUB_LENGTH = 220;
 const COPPER = "#b87333";
-const COPPER_LIGHT = "#cf8a4a";
 const COPPER_DARK = "#7e4a22";
 const BRASS = "#d9a441";
 const RIVET = "#8a5524";
+const WOOD = "#a9744f";
+const WOOD_LINE = "#8a5b3b";
+const WOOD_DARK = "#5a3522";
 const GLASS = "#123a4a";
 const LIGHT = "#ffd66b";
 const CREAM = "#f4f1ea";
 const FONT = "Outfit, 'Helvetica Neue', Arial, sans-serif";
 
-// Size from the total given: from 0.5 for a dollar to 1.3 from $20,000, on a log scale.
-export const subScale = (total: number) => 0.5 + 0.8 * Math.min(1, Math.max(0, Math.log10(Math.max(1, total)) / Math.log10(20000)));
+// Size from the total given: from 0.35 for a dollar to 0.9 from $20,000, on a log scale.
+export const subScale = (total: number) => 0.35 + 0.55 * Math.min(1, Math.max(0, Math.log10(Math.max(1, total)) / Math.log10(20000)));
 
 const initialsOf = (name: string) =>
   name
@@ -61,26 +63,28 @@ export const SubShape: React.FC<{ name: string; image?: string | null; uid: stri
         </g>
       ))}
       <path d={`M ${L * 0.04} ${-H / 2 - 36} L ${L * 0.04} ${-H / 2 - 64} L ${L * 0.1} ${-H / 2 - 64}`} stroke={COPPER_DARK} strokeWidth={4} fill="none" strokeLinecap="round" />
-      {/* Hull: copper, a lighter top, riveted seams */}
+      {/* Hull: wooden planks, a darker belly, copper bands with rivets, a copper-sheathed nose */}
       <defs>
         <clipPath id={`sub-${uid}`}>
           <path d={hull} />
         </clipPath>
       </defs>
-      <path d={hull} fill={COPPER} />
+      <path d={hull} fill={WOOD} />
       <g clipPath={`url(#sub-${uid})`}>
-        <rect x={-L} y={-H / 2} width={L * 2} height={H * 0.3} fill={COPPER_LIGHT} />
-        <rect x={-L} y={H * 0.18} width={L * 2} height={H} fill={COPPER_DARK} opacity={0.5} />
-        {[-0.3, -0.05, 0.38].map((f) => (
+        {[-0.3, -0.1, 0.1, 0.3].map((f) => (
+          <rect key={f} x={-L} y={H * f} width={L * 2} height={1.6} fill={WOOD_LINE} />
+        ))}
+        <rect x={-L} y={H * 0.2} width={L * 2} height={H} fill={WOOD_DARK} opacity={0.45} />
+        <rect x={L / 2 - 30} y={-H} width={60} height={H * 2} fill={COPPER} />
+        <rect x={L / 2 - 30} y={-H} width={4} height={H * 2} fill={COPPER_DARK} />
+        {[-0.34, -0.04, 0.3].map((f) => (
           <g key={f}>
-            <rect x={L * f} y={-H} width={2.5} height={H * 2} fill={RIVET} />
-            {Array.from({ length: 6 }, (_, k) => (
-              <circle key={k} cx={L * f + 6} cy={-H / 2 + 6 + k * 9} r={1.6} fill={RIVET} />
+            <rect x={L * f} y={-H} width={9} height={H * 2} fill={COPPER} />
+            <rect x={L * f + 7} y={-H} width={2} height={H * 2} fill={COPPER_DARK} />
+            {Array.from({ length: 5 }, (_, k) => (
+              <circle key={k} cx={L * f + 4.5} cy={-H / 2 + 7 + k * 10} r={1.4} fill={COPPER_DARK} />
             ))}
           </g>
-        ))}
-        {Array.from({ length: 22 }, (_, k) => (
-          <circle key={k} cx={-L / 2 + k * 11} cy={-H / 2 + 5} r={1.5} fill={RIVET} />
         ))}
       </g>
       {/* Small lit portholes along the hull */}
