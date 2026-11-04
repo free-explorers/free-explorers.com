@@ -55,10 +55,15 @@ export const OutpostBack: React.FC<Props & { style?: "hall" | "church" }> = ({ x
     `L ${x - 900} ${water + 80}`,
     "Z",
   ].join(" ");
-  const steps = Array.from({ length: 8 }, (_, i) => ({
-    x: x + 950 + i * 95,
-    y: foot + i * ((water - 90 - foot) / 8),
-  }));
+  // The steps: one solid flight of masonry built against the cliff, from the rock's top
+  // edge down to the quay, its block filling the space below the steps down into the water.
+  const STEPS = 8;
+  const stairs = { x0: x + 900, x1: x + 1650, top: foot, bottom: water - 110 };
+  const run = (stairs.x1 - stairs.x0) / STEPS;
+  const rise = (stairs.bottom - stairs.top) / STEPS;
+  let flight = `M ${stairs.x0} ${stairs.top}`;
+  for (let i = 1; i <= STEPS; i++) flight += ` H ${stairs.x0 + i * run} V ${stairs.top + i * rise}`;
+  flight += ` V ${water + 80} H ${stairs.x0} Z`;
   // The hall: from far left to the tower, its roof sloping down from the tower.
   const roofAt = (dx: number) => foot + ROOF.atTower + (ROOF.towerX - dx) * ROOF.slope;
   const wallRight = x + ROOF.towerX + 40;
@@ -76,9 +81,28 @@ export const OutpostBack: React.FC<Props & { style?: "hall" | "church" }> = ({ x
       <path d={rock} fill={ROCK} />
       <path d={face} fill={ROCK_DARK} />
       <path d={`M ${x - 5200} ${foot - 160} L ${x - 4200} ${foot}`} stroke={ROCK_LIGHT} strokeWidth={40} strokeLinecap="round" />
-      {/* Stone steps down to the quay */}
-      {steps.map((st, i) => (
-        <rect key={i} x={st.x} y={st.y} width={180} height={60} rx={6} fill={STONE_LINE} />
+      {/* Stone steps down to the quay: the flight's block, its mortar courses, a shaded
+          face, and a lighter worn tread on each step */}
+      <defs>
+        <clipPath id="fe-stairs">
+          <path d={flight} />
+        </clipPath>
+      </defs>
+      <path d={flight} fill={STONE_LINE} />
+      <g clipPath="url(#fe-stairs)">
+        {Array.from({ length: Math.ceil((water + 80 - stairs.top) / rise) }, (_, r) => (
+          <g key={r}>
+            <rect x={stairs.x0} y={stairs.top + (r + 1) * rise - 4} width={stairs.x1 - stairs.x0} height={8} fill={ROCK_DARK} opacity={0.35} />
+            {Array.from({ length: STEPS + 1 }, (_, k) => (
+              <rect key={k} x={stairs.x0 + (k + (r % 2) * 0.5) * run - 3} y={stairs.top + r * rise} width={6} height={rise} fill={ROCK_DARK} opacity={0.3} />
+            ))}
+          </g>
+        ))}
+        {/* Shade down the left, where the flight meets the cliff */}
+        <rect x={stairs.x0} y={stairs.top} width={run * 1.2} height={water + 80 - stairs.top} fill="#000" opacity={0.12} />
+      </g>
+      {Array.from({ length: STEPS }, (_, i) => (
+        <rect key={i} x={stairs.x0 + i * run} y={stairs.top + i * rise - 6} width={run + 8} height={22} rx={6} fill={STONE} />
       ))}
       <rect x={x + 1650} y={water - 110} width={1300} height={140} rx={12} fill={STONE} />
       {Array.from({ length: 5 }, (_, i) => (
