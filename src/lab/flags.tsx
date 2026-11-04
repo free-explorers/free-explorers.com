@@ -46,7 +46,8 @@ const Flag: React.FC<{ x: number; y: number; w: number; h: number; shape?: Shape
       : ` C ${x - w * 0.66} ${y + h + a} ${x - w * 0.33} ${y + h - a} ${x} ${y + h} Z`;
   const d = shape === "pennant" ? `M ${x} ${y} L ${fly} ${y + h / 2}${bottom}` : top + end + bottom;
   // Where the logo sits: the flag's body, inset (short of a swallowtail's notch).
-  const body = { x: x - w * (shape === "swallow" ? 0.76 : 0.92), y: y + h * 0.12, w: w * (shape === "swallow" ? 0.68 : 0.84), h: h * 0.76 };
+  // The cloth: the logo covers the whole flag (cream shows through transparent parts).
+  const body = { x: fly, y: y - a, w, h: h + a * 2 };
   return (
     <g>
       <defs>
@@ -56,14 +57,27 @@ const Flag: React.FC<{ x: number; y: number; w: number; h: number; shape?: Shape
       </defs>
       <path d={d} fill={fill} />
       <g clipPath={`url(#flag-${uid})`}>
-        {image && <image href={image} x={body.x} y={body.y} width={body.w} height={body.h} preserveAspectRatio="xMidYMid meet" />}
+        {image && <image href={image} x={body.x} y={body.y} width={body.w} height={body.h} preserveAspectRatio="xMidYMid slice" />}
         {text && (
-          <text x={body.x + body.w / 2} y={y + h / 2} dy="0.36em" textAnchor="middle" fontSize={h * 0.42} fontWeight={800} fill={CREAM} fontFamily={FONT}>
+          <text
+            x={x - w * 0.52}
+            y={y + h / 2}
+            dy="0.36em"
+            textAnchor="middle"
+            fontSize={h * 0.42}
+            fontWeight={800}
+            fill={CREAM}
+            fontFamily={FONT}
+            {...(text.length * h * 0.42 * 0.62 > w * 0.78 ? { textLength: w * 0.78, lengthAdjust: "spacingAndGlyphs" as const } : {})}
+          >
             {text}
           </text>
         )}
-        {/* The wave's crease */}
-        <rect x={x - w * 0.55} y={y - a} width={w * 0.12} height={h + a * 2} fill="#000" opacity={0.07} />
+        {/* Folds in the cloth (dark in the troughs, light on the crests), and the hem along the pole */}
+        <rect x={x - w * 0.62} y={y - a} width={w * 0.14} height={h + a * 2} fill="#000" opacity={0.12} />
+        <rect x={x - w * 0.95} y={y - a} width={w * 0.1} height={h + a * 2} fill="#000" opacity={0.08} />
+        <rect x={x - w * 0.3} y={y - a} width={w * 0.1} height={h + a * 2} fill="#fff" opacity={0.12} />
+        <rect x={x - w * 0.06} y={y - a} width={w * 0.06} height={h + a * 2} fill="#e3dccb" />
       </g>
     </g>
   );
@@ -108,12 +122,12 @@ const SmallBoatFlags: React.FC<FlagProps & { kind: Exclude<BoatKind, "galleon"> 
   const foreMast = MASTS[kind][MASTS[kind].length - 1];
   const mainTop = deck - main.h;
   const fw = L * 0.38;
-  const fh = fw * 0.66;
+  const fh = fw * 0.9;
   const pole = fh + 6;
   const hoist = mainTop - pole;
   // The stern staff, leaning back a little.
   const staff = { x0: -L / 2 + 8, y0: deck, x1: -L / 2 - 4, y1: deck - L * 0.36 };
-  const ensign = { w: L * 0.4, h: L * 0.26 };
+  const ensign = { w: L * 0.36, h: L * 0.32 };
   return (
     <g>
       {mode === "dressed" && (
@@ -127,7 +141,7 @@ const SmallBoatFlags: React.FC<FlagProps & { kind: Exclude<BoatKind, "galleon"> 
       <ClothBoat kind={kind} mode="plain" name={name} uid={uid} color={color} pennants={false} />
       {(mode === "masthead" || mode === "dressed" || mode === "pair" || mode === "nologo" || mode === "burgee") && <Pole x={main.x} top={mainTop} h={pole} wide={Math.max(2.5, L * 0.012)} />}
       {(mode === "masthead" || mode === "dressed" || mode === "pair") && <Flag x={main.x - 1} y={hoist} w={fw} h={fh} image={image} uid={`${uid}-mh`} />}
-      {mode === "burgee" && <Flag x={main.x - 1} y={hoist} w={fw * 1.35} h={fh} shape="swallow" image={image} uid={`${uid}-bg`} />}
+      {mode === "burgee" && <Flag x={main.x - 1} y={hoist} w={fw * 1.2} h={fh} shape="swallow" image={image} uid={`${uid}-bg`} />}
       {mode === "nologo" && <Flag x={main.x - 1} y={hoist} w={fw} h={fh} fill={color} text={initials(name)} uid={`${uid}-nl`} />}
       {(mode === "ensign" || mode === "pair") && (
         <g>
@@ -156,7 +170,7 @@ const GalleonFlags: React.FC<FlagProps> = ({ mode, image, name, uid, color }) =>
   ];
   const sprit = { x: 312, y: deck - 64 };
   const staff = { x0: c.x0 + 6, y0: deck - c.h, x1: c.x0 - 10, y1: deck - c.h - 150 };
-  const big = { w: 120, h: 80 };
+  const big = { w: 112, h: 100 };
   return (
     <g>
       {mode === "dressed" && (
@@ -169,11 +183,11 @@ const GalleonFlags: React.FC<FlagProps> = ({ mode, image, name, uid, color }) =>
       )}
       <ClothBoat kind="galleon" mode="plain" name={name} uid={uid} color={color} pennants={false} />
       {tops.map((t, i) => (
-        <Pole key={i} x={t.x} top={t.top} h={i === 1 && mode !== "ensign" ? big.h + 8 : 56} wide={6} />
+        <Pole key={i} x={t.x} top={t.top} h={i === 1 && mode !== "ensign" ? big.h + 8 : mode === "masthead" ? 70 : 56} wide={6} />
       ))}
       {/* Mastheads: the logo on the main, and per mode on the others */}
       {mode === "burgee" ? (
-        <Flag x={main.x - 2} y={tops[1].top - big.h - 8} w={big.w * 1.5} h={big.h} shape="swallow" image={image} uid={`${uid}-gb`} />
+        <Flag x={main.x - 2} y={tops[1].top - big.h - 8} w={big.w * 1.25} h={big.h} shape="swallow" image={image} uid={`${uid}-gb`} />
       ) : mode === "nologo" ? (
         <Flag x={main.x - 2} y={tops[1].top - big.h - 8} w={big.w} h={big.h} fill={color} text={initials(name)} uid={`${uid}-gn`} />
       ) : mode !== "ensign" ? (
@@ -183,7 +197,7 @@ const GalleonFlags: React.FC<FlagProps> = ({ mode, image, name, uid, color }) =>
       )}
       {[0, 2].map((i) =>
         mode === "masthead" ? (
-          <Flag key={i} x={tops[i].x - 2} y={tops[i].top - 54} w={78} h={50} image={image} uid={`${uid}-g${i}`} />
+          <Flag key={i} x={tops[i].x - 2} y={tops[i].top - 66} w={70} h={62} image={image} uid={`${uid}-g${i}`} />
         ) : (
           <Flag key={i} x={tops[i].x - 2} y={tops[i].top - 54} w={70} h={30} shape="pennant" fill={color} uid={`${uid}-gp${i}`} />
         ),
@@ -192,7 +206,7 @@ const GalleonFlags: React.FC<FlagProps> = ({ mode, image, name, uid, color }) =>
         <g>
           <line x1={staff.x0} y1={staff.y0} x2={staff.x1} y2={staff.y1} stroke={WOOD_DARK} strokeWidth={6} strokeLinecap="round" />
           {mode === "ensign" ? (
-            <Flag x={staff.x1} y={staff.y1} w={190} h={124} image={image} uid={`${uid}-ge`} />
+            <Flag x={staff.x1} y={staff.y1} w={168} h={150} image={image} uid={`${uid}-ge`} />
           ) : (
             <Flag x={staff.x1} y={staff.y1} w={170} h={70} fill={color} text={name.toUpperCase()} uid={`${uid}-ge`} />
           )}
