@@ -1,0 +1,422 @@
+:root {
+  --ink: #f4f1ea;
+  --muted: #b9d3dd;
+  --teal: #006888;
+  --teal-light: #7fd0ec;
+  --gold: #f9c46b;
+  --night: #10222d;
+  --font: "Outfit", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--ink);
+  font: 400 17px/1.55 var(--font);
+  overflow: hidden;
+}
+
+a {
+  color: inherit;
+}
+
+.site {
+  position: fixed;
+  inset: 0;
+}
+
+.sky,
+.scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.camera {
+  will-change: transform;
+}
+
+/* The sea rolls: each wave band slides by one wavelength (120 units), looping. */
+.wave {
+  animation: roll 6s linear infinite;
+}
+.wave-fast {
+  animation-duration: 3.6s;
+  animation-direction: reverse;
+}
+@keyframes roll {
+  to {
+    transform: translateX(120px);
+  }
+}
+.streaks {
+  animation: drift 14s ease-in-out infinite alternate;
+}
+@keyframes drift {
+  to {
+    transform: translateX(-40px);
+  }
+}
+
+/* Boats bob and rock on the swell. */
+.bob {
+  transform-box: fill-box;
+  transform-origin: 50% 85%;
+  animation: bob 5.5s ease-in-out infinite;
+}
+.bob-big {
+  animation-duration: 8s;
+}
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.4deg);
+  }
+  50% {
+    transform: translateY(5px) rotate(1.4deg);
+  }
+}
+.bob-big {
+  animation-name: bob-big;
+}
+@keyframes bob-big {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.6deg);
+  }
+  50% {
+    transform: translateY(6px) rotate(0.6deg);
+  }
+}
+
+.star {
+  animation: twinkle 5s ease-in-out infinite alternate;
+}
+@keyframes twinkle {
+  to {
+    opacity: 0.1;
+  }
+}
+
+.flag {
+  animation: flutter 3s ease-in-out infinite;
+}
+@keyframes flutter {
+  50% {
+    transform: skewY(3deg);
+  }
+}
+
+/* A boat's name and tier show on hover or keyboard focus. */
+.boat {
+  cursor: pointer;
+  outline: none;
+}
+.boat-former {
+  opacity: 0.75;
+}
+.boat-label {
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+.boat:hover .boat-label,
+.boat:focus-visible .boat-label {
+  opacity: 1;
+}
+.boat:focus-visible .bob {
+  filter: drop-shadow(0 0 6px var(--gold));
+}
+.boat-name,
+.boat-tier {
+  font-family: var(--font);
+  paint-order: stroke;
+  stroke: #0b2633;
+  stroke-width: 6px;
+  stroke-linejoin: round;
+}
+.boat-name {
+  font-size: 22px;
+  font-weight: 700;
+  fill: #fff;
+}
+.boat-tier {
+  font-size: 15px;
+  fill: var(--gold);
+}
+
+/* The column on the right: title, menu, the page's text, links. */
+.column {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: calc(40px + env(safe-area-inset-top, 0px)) 48px calc(32px + env(safe-area-inset-bottom, 0px)) 0;
+  pointer-events: none;
+}
+.column > * {
+  pointer-events: auto;
+}
+
+.title {
+  text-align: right;
+}
+.wordmark {
+  display: block;
+  font-weight: 800;
+  font-size: clamp(40px, 4.4vw, 68px);
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  text-shadow: 0 2px 24px rgba(10, 30, 40, 0.5);
+}
+.tagline {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.menu a {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 21px;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--muted);
+  transition: color 0.2s;
+}
+.menu a:hover {
+  color: var(--ink);
+}
+.menu a[aria-current="page"] {
+  color: var(--ink);
+}
+.menu a[aria-current="page"]::after {
+  content: "";
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--gold);
+  align-self: center;
+}
+.menu-index {
+  font-size: 13px;
+  color: var(--teal-light);
+  opacity: 0.8;
+}
+
+.panels {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+}
+.panel {
+  grid-area: 1 / 1;
+  align-self: start;
+  padding: 22px 24px;
+  border-radius: 18px;
+  background: rgba(10, 34, 45, 0.55);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transform: translateX(24px);
+  transition:
+    opacity 0.5s,
+    transform 0.6s;
+  visibility: hidden;
+  max-height: 100%;
+  overflow: auto;
+}
+.panel-on {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition-delay: 0.35s;
+}
+.panel h2 {
+  margin: 0 0 4px;
+  font-size: 30px;
+  font-weight: 800;
+}
+.panel p {
+  margin: 0 0 14px;
+}
+.panel .lead {
+  color: var(--gold);
+  font-weight: 500;
+}
+.count {
+  color: var(--muted);
+}
+.count strong {
+  color: var(--ink);
+  font-size: 22px;
+}
+
+.count-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.count-row .count {
+  margin: 0;
+}
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.legend li {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+.legend svg {
+  width: 34px;
+  height: 34px;
+}
+.legend-n {
+  color: var(--muted);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.cta {
+  display: inline-block;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #1d2a33;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.15s;
+}
+.cta:hover {
+  transform: translateY(-2px);
+}
+.cta-ghost {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.links {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 18px;
+  font-size: 15px;
+  color: var(--muted);
+}
+.links a {
+  text-decoration: none;
+}
+.links a:hover {
+  color: var(--ink);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Phones: the column spans the top of the screen, over the sky. */
+@media (max-width: 759px) {
+  body {
+    font-size: 15px;
+  }
+  .column {
+    left: 0;
+    bottom: auto;
+    max-height: 62%;
+    gap: 12px;
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 16px 0;
+  }
+  .wordmark {
+    font-size: 36px;
+  }
+  .tagline {
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  .menu {
+    flex-direction: row;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .menu a {
+    font-size: 16px;
+    padding: 2px 0;
+  }
+  .menu a[aria-current="page"]::after {
+    display: none;
+  }
+  .menu a[aria-current="page"] {
+    box-shadow: inset 0 -3px var(--gold);
+  }
+  .menu-index {
+    display: none;
+  }
+  .panel {
+    padding: 14px 16px;
+    margin-left: auto;
+    max-width: 420px;
+  }
+  .panel h2 {
+    font-size: 22px;
+  }
+  .legend {
+    display: none;
+  }
+  .links {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wave,
+  .streaks,
+  .bob,
+  .star,
+  .flag {
+    animation: none;
+  }
+  .panel {
+    transition: none;
+  }
+}
