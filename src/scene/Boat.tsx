@@ -25,8 +25,8 @@ type Spec = { L: number; masts: Mast[]; jib: boolean };
 export const BOAT_SPEC: Record<BoatKind, Spec> = {
   // The galleon is drawn by its own component; its masts here only give its height.
   galleon: { L: 440, masts: [{ x: -10, h: 330 }], jib: true },
-  brig: { L: 300, masts: [{ x: -95, h: 200 }, { x: 30, h: 262 }], jib: true },
-  sloop: { L: 205, masts: [{ x: 10, h: 220 }], jib: true },
+  brig: { L: 300, masts: [{ x: -95, h: 150 }, { x: 30, h: 190 }], jib: true },
+  sloop: { L: 205, masts: [{ x: 10, h: 165 }], jib: true },
   dinghy: { L: 130, masts: [{ x: 4, h: 140 }], jib: false },
 };
 // How much bigger each boat is drawn on the sea than its plan (the galleon stands out).
@@ -67,10 +67,21 @@ const Hull: React.FC<{ kind: Exclude<BoatKind, "galleon">; L: number; color: str
     rail = `M ${-L / 2 - 1} ${-F} L ${L * 0.55 + 1} ${-F * 1.3}`;
     bands = <path d={underRail(-L / 2, -F, L * 0.55, -F * 1.3, 2.5, F * 0.2)} fill={color} />;
   } else if (kind === "sloop") {
-    const D = L * 0.075;
-    d = `M ${-L * 0.53} ${-F * 0.92} L ${L * 0.56} ${-F * 1.28} Q ${L * 0.46} ${-F * 0.3} ${L * 0.34} ${D * 0.5} Q ${L * 0.1} ${D} ${-L * 0.2} ${D} Q ${-L * 0.38} ${D * 0.8} ${-L * 0.45} ${0} Z`;
-    rail = `M ${-L * 0.53 - 1} ${-F * 0.92} L ${L * 0.56 + 1} ${-F * 1.28}`;
-    bands = <path d={underRail(-L * 0.53, -F * 0.92, L * 0.56, -F * 1.28, 3, Math.max(2.5, L * 0.014))} fill={SAIL} />;
+    // A classic wooden sloop: a curved sheer dipping amidships, a full bow, a rounded stern.
+    const D = L * 0.11;
+    const stern = { x: -L * 0.5, y: -F * 1.12 };
+    const bowTop = { x: L * 0.55, y: -F * 1.3 };
+    const sag = { x: 0, y: -F * 0.84 };
+    d = `M ${stern.x} ${stern.y} Q ${sag.x} ${sag.y} ${bowTop.x} ${bowTop.y} Q ${L * 0.5} ${D * 0.6} ${L * 0.3} ${D} L ${-L * 0.3} ${D} Q ${-L * 0.53} ${D * 0.6} ${stern.x} ${stern.y} Z`;
+    rail = `M ${stern.x - 1} ${stern.y} Q ${sag.x} ${sag.y} ${bowTop.x + 1} ${bowTop.y}`;
+    const g = 3;
+    const h = Math.max(2.5, L * 0.016);
+    bands = (
+      <path
+        d={`M ${stern.x} ${stern.y + g} Q ${sag.x} ${sag.y + g} ${bowTop.x} ${bowTop.y + g} L ${bowTop.x} ${bowTop.y + g + h} Q ${sag.x} ${sag.y + g + h} ${stern.x} ${stern.y + g + h} Z`}
+        fill={SAIL}
+      />
+    );
   } else {
     const D = L * 0.11;
     const Q = QUARTERDECK(L);
@@ -261,8 +272,8 @@ const Sailboat: React.FC<ShapeProps> = ({ kind, active = true, image, name = "",
   const jibClewX = kind === "brig" ? bow.x - L * 0.12 : main.x + 3;
   // The jib on the forestay: from high on the main mast to the bow (the brigantine's to the
   // end of a bowsprit).
-  const tack = kind === "brig" ? { x: bow.x + L * 0.14, y: bow.y - L * 0.04 } : { x: bow.x - L * 0.06, y: bow.y - 6 };
-  const jibAt = kind === "brig" ? 0.4 : 0.12;
+  const tack = kind === "brig" ? { x: bow.x + L * 0.18, y: bow.y - L * 0.05 } : { x: bow.x - L * 0.06, y: bow.y - 6 };
+  const jibAt = kind === "brig" ? 0.42 : 0.12;
   const jibHead = { x: main.x + (tack.x - main.x) * jibAt, y: mainTop + (tack.y - mainTop) * jibAt };
   let sails: React.ReactNode = null;
   let furled: React.ReactNode = null;
@@ -277,7 +288,7 @@ const Sailboat: React.FC<ShapeProps> = ({ kind, active = true, image, name = "",
     // The gaff sail, nearly square: luff on the mast, a gaff almost level from the throat to
     // the peak, the leech straight down to the boom's end.
     const x0 = main.x - 3;
-    const w = Math.min(L * 0.44, x0 + L / 2 - 6);
+    const w = Math.min(L * 0.5, x0 + L / 2 - 6);
     const throat = mainTop + 18;
     const peak = { x: x0 - w * 0.97, y: mainTop + 10 };
     const d = `M ${x0} ${foot} L ${x0} ${throat} L ${peak.x} ${peak.y} L ${x0 - w} ${foot} Z`;
@@ -298,7 +309,7 @@ const Sailboat: React.FC<ShapeProps> = ({ kind, active = true, image, name = "",
     const rear = masts[0];
     const rw = Math.min(L * 0.2, rear.x + L / 2 - 6);
     const rearFoot = QUARTERDECK(L) - 12;
-    const course = { top: deck - 236, bottom: deck - 28, topHw: 68, bottomHw: 88 };
+    const course = { top: deck - 172, bottom: deck - 28, topHw: 74, bottomHw: 86 };
     const c = squareSail(main.x, course.top, course.bottom, course.topHw, course.bottomHw);
     sails = (
       <g>
