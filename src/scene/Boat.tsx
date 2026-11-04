@@ -25,6 +25,11 @@ export const BOAT_SPEC: Record<BoatKind, Spec> = {
   sloop: { L: 205, masts: [{ x: 0, h: 220 }], jib: true },
   dinghy: { L: 130, masts: [{ x: 4, h: 140 }], jib: false },
 };
+// How much bigger each boat is drawn on the sea than its plan (the galleon stands out).
+export const KIND_SCALE: Record<BoatKind, number> = { galleon: 1.5, brig: 1, sloop: 1, dinghy: 1 };
+// A boat's length on the sea, for spacing.
+export const boatLength = (kind: BoatKind) => BOAT_SPEC[kind].L * KIND_SCALE[kind];
+
 export const boatHeight = (kind: BoatKind) => {
   const s = BOAT_SPEC[kind];
   return kind === "galleon" ? GALLEON.deck + GALLEON.main.h + 20 : Math.max(...s.masts.map((m) => m.h)) + s.L * 0.14 + 24;

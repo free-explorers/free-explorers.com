@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { LAST_BEAM, Lighthouse, lighthouseFoot, lighthouseHeight, type LighthouseVariant } from "./Lighthouse";
 import { OutpostBack, TowerDetails } from "./Outpost";
-import { BOAT_SPEC, BoatShape } from "./Boat";
+import { BoatShape, boatLength } from "./Boat";
 import { Fleet } from "./Fleet";
 import { Bob, Flutter, Slide } from "./Motion";
 import { BOATS, type BoatKind, type Member } from "../members";
@@ -131,7 +131,7 @@ export const layoutFleet = (members: Member[], pageW: number, reserveRight: numb
       const rowLeft = r === 0 ? left : left + 60 * r;
       const rowRight = right;
       while (queue.length) {
-        const w = BOAT_SPEC[queue[0].boat].L * 1.35 * s;
+        const w = boatLength(queue[0].boat) * 1.35 * s;
         if (width + w > rowRight - rowLeft) break;
         width += w;
         placed.push(queue.shift()!);
@@ -140,7 +140,7 @@ export const layoutFleet = (members: Member[], pageW: number, reserveRight: numb
       const gap = (rowRight - rowLeft - width) / (placed.length + 1);
       let x = rowLeft + gap;
       placed.forEach((m, i) => {
-        const w = BOAT_SPEC[m.boat].L * 1.35 * s;
+        const w = boatLength(m.boat) * 1.35 * s;
         const j = (hash(m.id) - 0.5) * Math.min(gap, 80);
         slots.push({ member: m, x: x + w / 2 + j, y: row.y + (i % 2) * 10 * s, scale: s, delay: hash(m.id + "d") * 6, shrink });
         x += w + gap;
@@ -151,12 +151,12 @@ export const layoutFleet = (members: Member[], pageW: number, reserveRight: numb
     const hs = HORIZON.scale * shrink;
     const hLeft = islandRight(pageW) + 20;
     const hRight = right;
-    const hw = former.reduce((a, m) => a + BOAT_SPEC[m.boat].L * 1.4 * hs, 0);
+    const hw = former.reduce((a, m) => a + boatLength(m.boat) * 1.4 * hs, 0);
     if (hw > hRight - hLeft) ok = false;
     const hgap = (hRight - hLeft - hw) / (former.length + 1);
     let hx = hLeft + hgap;
     former.forEach((m) => {
-      const w = BOAT_SPEC[m.boat].L * 1.4 * hs;
+      const w = boatLength(m.boat) * 1.4 * hs;
       slots.push({ member: m, x: hx + w / 2, y: HORIZON.y, scale: hs, delay: hash(m.id + "d") * 6, shrink });
       hx += w + hgap;
     });
@@ -236,7 +236,7 @@ export const ARCHITECTS = [{ name: "PapyElGringo", image: "https://github.com/Pa
 // galleon. Its stern is made fast to the quay's mooring post.
 const POST = { x: 2820, top: -270 }; // the quay's mooring post, in house units around the lighthouse's foot
 const GalleonForSale: React.FC<{ pageW: number; onPick: () => void }> = ({ pageW, onPick }) => {
-  const scale = 0.4;
+  const scale = 0.6;
   const x = islandRight(pageW) + 220 * scale + 16;
   const y = ISLAND_WATER + 4;
   const post = { x: islandX(pageW) + POST.x * K, y: ISLAND_WATER + (POST.top + ISLAND_RISE - ISLAND_RISE) * K };

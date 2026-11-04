@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { BOAT_SPEC, MemberBoat, type BoatParts } from "./Boat";
+import { MemberBoat, type BoatParts, boatLength, KIND_SCALE } from "./Boat";
 import type { Slot } from "./World";
 import { sizeWithin } from "../members";
 
@@ -72,9 +72,9 @@ export const Fleet: React.FC<{ slots: Slot[]; seaW: number; page: number; pageW:
     const next = new Map<string, Sim>();
     for (const s of slots) {
       const prev = sims.current.get(s.member.id);
-      const half = (BOAT_SPEC[s.member.boat].L / 2) * 1.05;
+      const half = (boatLength(s.member.boat) / 2) * 1.05;
       // The layout's scale, times the boat's size within its kind (from its amount).
-      const shrink = s.shrink * sizeWithin(s.member.amount);
+      const shrink = s.shrink * sizeWithin(s.member.amount) * KIND_SCALE[s.member.boat];
       const dir: 1 | -1 = Math.random() < 0.5 ? 1 : -1;
       next.set(
         s.member.id,
