@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { LAST_BEAM, Lighthouse, lighthouseFoot, lighthouseHeight, type LighthouseVariant } from "./Lighthouse";
 import { OutpostBack, TowerDetails } from "./Outpost";
-import { BoatShape, boatLength } from "./Boat";
+import { BoatShape, Waterline, boatLength } from "./Boat";
 import { Fleet } from "./Fleet";
 import { Bob, Flutter, Slide } from "./Motion";
 import { BOATS, type BoatKind, type Member } from "../members";
@@ -255,9 +255,11 @@ const GalleonForSale: React.FC<{ pageW: number; onPick: () => void }> = ({ pageW
       {/* Mooring line from the post to the stern */}
       <path d={`M ${post.x} ${post.y} Q ${(post.x + sternRing.x) / 2} ${Math.max(post.y, sternRing.y) + 10} ${sternRing.x} ${sternRing.y}`} stroke="#c9a46b" strokeWidth={1.6} fill="none" />
       <g transform={`translate(${x} ${y}) scale(${scale})`}>
-        <Bob dur={7} dy={3} deg={0.5}>
-          <BoatShape kind="galleon" uid="for-sale" forSale />
-        </Bob>
+        <Waterline uid="for-sale">
+          <Bob dur={7} dy={3} deg={0.5}>
+            <BoatShape kind="galleon" uid="for-sale" forSale />
+          </Bob>
+        </Waterline>
       </g>
       <g className="boat-label" transform={`translate(${x} ${y - 460 * scale - 40})`}>
         <text textAnchor="middle" className="boat-name">

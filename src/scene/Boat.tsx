@@ -301,6 +301,23 @@ const Galleon: React.FC<ShapeProps> = ({ active: sailing = true, image, name = "
   );
 };
 
+// Hides what lies below the sea's surface (y > `below`), outside the boat's bobbing so the
+// keel stays underwater however the boat rocks. Used for the galleon, whose deep hull would
+// otherwise show through the water.
+export const Waterline: React.FC<{ uid: string; on?: boolean; below?: number; children: React.ReactNode }> = ({ uid, on = true, below = 8, children }) =>
+  on ? (
+    <g clipPath={`url(#waterline-${uid})`}>
+      <defs>
+        <clipPath id={`waterline-${uid}`}>
+          <rect x={-2000} y={-3000} width={4000} height={3000 + below} />
+        </clipPath>
+      </defs>
+      {children}
+    </g>
+  ) : (
+    <>{children}</>
+  );
+
 // A member's boat on the sea, bobbing, linking to their profile, with their name on hover.
 // The fleet moves it: `parts` hands it the groups to transform (position, the boat's scale
 // and heading, the label's height) and `onHold` pauses it while it's pointed at.
@@ -335,9 +352,11 @@ export const MemberBoat: React.FC<{
         onBlur={() => onHold(false)}
       >
         <g ref={boat}>
-          <Bob delay={delay} deg={member.boat === "galleon" ? 0.8 : 1.4}>
-            <BoatShape kind={member.boat} active={member.active} image={member.image} name={member.name} uid={member.id.replace(/\W/g, "")} />
-          </Bob>
+          <Waterline uid={member.id.replace(/\W/g, "")} on={member.boat === "galleon"}>
+            <Bob delay={delay} deg={member.boat === "galleon" ? 0.8 : 1.4}>
+              <BoatShape kind={member.boat} active={member.active} image={member.image} name={member.name} uid={member.id.replace(/\W/g, "")} />
+            </Bob>
+          </Waterline>
         </g>
         <g ref={label} className="boat-label">
           <text textAnchor="middle" className="boat-name">
