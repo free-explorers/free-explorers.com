@@ -2,68 +2,83 @@ import React from "react";
 import { BOATS, type BoatKind } from "../members";
 import { BoatShape } from "../scene/Boat";
 import { Bob } from "../scene/Motion";
-import { PROPOSALS, type BoatProps } from "./proposals";
+import { VARIANTS } from "./variants";
 
-// The boat proposals side by side (dev only, not part of the site): a row per proposal, a
-// column per boat, the current boats on top for reference. Real member avatars, on the
-// night sea, bobbing.
+// Boat variations (dev only, not part of the site): a row per boat type, the current boat
+// first, then five variants of the same style, each showing the donor a different way.
+// Real member avatars; a sample company logo on the galleon.
 
 const KINDS: BoatKind[] = ["dinghy", "sloop", "brig", "galleon"];
-const AVATARS = [
-  { name: "Piotron", image: "https://images.opencollective.com/piotron/avatar/128.png" },
-  { name: "Jesse Dhillon", image: "https://images.opencollective.com/jesse-dhillon/avatar/128.png" },
-  { name: "Coding Koala", image: "https://images.opencollective.com/codingkoalageneral1/avatar/128.png" },
-  { name: "Acme Corp", image: undefined },
-];
 
-const Current: React.FC<BoatProps> = ({ kind, image, name, uid }) => <BoatShape kind={kind} image={image} name={name} uid={uid} />;
-const ROWS = [{ id: "current", name: "Current", blurb: "What the site shows today, for reference.", Boat: Current }, ...PROPOSALS];
+// A sample sponsor logo (wide, as company logos often are).
+const ACME = `data:image/svg+xml;utf8,${encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120"><rect width="200" height="120" fill="#e8573f"/><path d="M28 86 L54 30 L80 86 Z" fill="#fff"/><path d="M48 86 L62 58 L76 86 Z" fill="#e8573f"/><text x="92" y="74" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="34" fill="#fff">ACME</text></svg>`,
+)}`;
+const DONOR: Record<BoatKind, { name: string; image?: string }> = {
+  dinghy: { name: "Piotron", image: "https://images.opencollective.com/piotron/avatar/128.png" },
+  sloop: { name: "Jesse Dhillon", image: "https://images.opencollective.com/jesse-dhillon/avatar/128.png" },
+  brig: { name: "CodingKoalaGeneral", image: "https://images.opencollective.com/codingkoalageneral1/avatar/128.png" },
+  galleon: { name: "Acme Corp", image: ACME },
+};
+// Each row's frame, fitted to its boat (x, y, width, height), the waterline at 0.
+const FRAME: Record<BoatKind, [number, number, number, number]> = {
+  dinghy: [-130, -230, 280, 260],
+  sloop: [-190, -320, 420, 360],
+  brig: [-240, -380, 520, 430],
+  galleon: [-390, -470, 750, 540],
+};
+
+const Cell: React.FC<{ kind: BoatKind; label: string; current?: boolean; children: React.ReactNode }> = ({ kind, label, current, children }) => {
+  const [x, y, w, h] = FRAME[kind];
+  return (
+    <figure className={`lab-cell${current ? " lab-current" : ""}`}>
+      <svg viewBox={`${x} ${y} ${w} ${h}`} aria-label={label}>
+        <defs>
+          <linearGradient id={`sky-${kind}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#1d3a4c" />
+            <stop offset="1" stopColor="#3d6c82" />
+          </linearGradient>
+        </defs>
+        <rect x={x} y={y} width={w} height={-y} fill={`url(#sky-${kind})`} />
+        <rect x={x} y={0} width={w} height={h + y} fill="#0b5f7c" />
+        {children}
+        <rect x={x} y={6} width={w} height={h + y} fill="#05384a" opacity={0.85} />
+      </svg>
+      <figcaption>{label}</figcaption>
+    </figure>
+  );
+};
 
 export const BoatLab: React.FC = () => (
   <main className="lab">
     <header>
-      <h1>Boat proposals</h1>
-      <p>A row per proposal, a boat per column, drawn at their real relative sizes. Boats can be mixed across rows.</p>
+      <h1>Boat variations</h1>
+      <p>Five variants per boat in the site's style, each showing the donor a different way: a big logo, a printed sail, a flag, a spinnaker, a name streamer, their name on the hull. The current boat comes first.</p>
     </header>
-    <div className="lab-grid">
-      <div />
-      {KINDS.map((k) => {
-        const b = BOATS.find((x) => x.id === k)!;
-        return (
-          <div key={k} className="lab-col">
-            <strong>{b.name}</strong> <span>{b.range} / mo</span>
+    {KINDS.map((kind) => {
+      const b = BOATS.find((x) => x.id === kind)!;
+      const donor = DONOR[kind];
+      return (
+        <section key={kind} className="lab-row">
+          <h2>
+            {b.name} <span>{b.range} / mo</span>
+          </h2>
+          <div className="lab-cells">
+            <Cell kind={kind} label="Current" current>
+              <Bob deg={kind === "galleon" ? 0.8 : 1.4}>
+                <BoatShape kind={kind} image={donor.image} name={donor.name} uid={`cur-${kind}`} />
+              </Bob>
+            </Cell>
+            {VARIANTS[kind].map((v, i) => (
+              <Cell key={v.id} kind={kind} label={`${i + 1} · ${v.label}`}>
+                <Bob delay={i * 1.1} deg={kind === "galleon" ? 0.8 : 1.4}>
+                  <v.Boat image={donor.image} name={donor.name} uid={v.id} color={b.color} />
+                </Bob>
+              </Cell>
+            ))}
           </div>
-        );
-      })}
-      {ROWS.map((row) => (
-        <React.Fragment key={row.id}>
-          <div className={`lab-row-head${row.id === "current" ? " lab-current" : ""}`}>
-            <h2>{row.name}</h2>
-            <p>{row.blurb}</p>
-          </div>
-          {KINDS.map((k, i) => {
-            const a = AVATARS[i];
-            return (
-              <div key={k} className={`lab-cell${row.id === "current" ? " lab-current" : ""}`}>
-                <svg viewBox="-340 -480 700 540" aria-label={`${row.name}: ${k}`}>
-                  <rect x={-340} y={-480} width={700} height={480} fill="url(#lab-sky)" />
-                  <rect x={-340} y={0} width={700} height={60} fill="#0b5f7c" />
-                  <defs>
-                    <linearGradient id="lab-sky" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0" stopColor="#1d3a4c" />
-                      <stop offset="1" stopColor="#3d6c82" />
-                    </linearGradient>
-                  </defs>
-                  <Bob delay={i * 1.3} deg={k === "galleon" ? 0.8 : 1.4}>
-                    <row.Boat kind={k} image={a.image} name={a.name} uid={`${row.id}-${k}`} />
-                  </Bob>
-                  <rect x={-340} y={6} width={700} height={60} fill="#05384a" opacity={0.85} />
-                </svg>
-              </div>
-            );
-          })}
-        </React.Fragment>
-      ))}
-    </div>
+        </section>
+      );
+    })}
   </main>
 );

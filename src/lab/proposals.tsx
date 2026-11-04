@@ -12,7 +12,7 @@ export type BoatProps = { kind: BoatKind; image?: string; name: string; uid: str
 // Shared rig geometry: hull length L, freeboard F (deck at y -F), and each boat's masts.
 
 type Rig = { L: number; F: number };
-const RIG: Record<BoatKind, Rig> = {
+export const RIG: Record<BoatKind, Rig> = {
   dinghy: { L: 130, F: 20 },
   sloop: { L: 210, F: 30 },
   brig: { L: 300, F: 40 },
@@ -29,7 +29,7 @@ const initials = (name: string) =>
     .toUpperCase();
 
 // The member's avatar clipped to a circle, over a disc (initials show until it loads).
-const Avatar: React.FC<{ cx: number; cy: number; r: number; image?: string; name: string; uid: string; ring?: string; disc?: string; ringWidth?: number }> = ({
+export const Avatar: React.FC<{ cx: number; cy: number; r: number; image?: string; name: string; uid: string; ring?: string; disc?: string; ringWidth?: number }> = ({
   cx,
   cy,
   r,
@@ -57,24 +57,24 @@ const Avatar: React.FC<{ cx: number; cy: number; r: number; image?: string; name
 
 // Sails. `mx` is the mast, `top`/`foot` the sail's head and foot heights, `w` how far it
 // reaches back (towards the stern) or `hw` its half-width for square sails.
-const triangle = (mx: number, top: number, foot: number, w: number) =>
+export const triangle = (mx: number, top: number, foot: number, w: number) =>
   `M ${mx} ${top} L ${mx} ${foot} L ${mx - w} ${foot} Q ${mx - w * 0.36} ${(top + foot) / 2 + 6} ${mx} ${top} Z`;
-const triangleShade = (mx: number, top: number, foot: number, w: number) =>
+export const triangleShade = (mx: number, top: number, foot: number, w: number) =>
   `M ${mx} ${top} L ${mx - w * 0.5} ${foot} L ${mx - w} ${foot} Q ${mx - w * 0.36} ${(top + foot) / 2 + 6} ${mx} ${top} Z`;
-const gaff = (mx: number, top: number, foot: number, w: number) =>
+export const gaff = (mx: number, top: number, foot: number, w: number) =>
   `M ${mx} ${top + 26} L ${mx - w * 0.82} ${top} L ${mx - w} ${foot} L ${mx} ${foot} Z`;
-const square = (x: number, top: number, bottom: number, hw: number) =>
+export const square = (x: number, top: number, bottom: number, hw: number) =>
   `M ${x - hw} ${top} L ${x + hw} ${top} Q ${x + hw * 1.1} ${(top + bottom) / 2} ${x + hw * 0.94} ${bottom} Q ${x} ${bottom + 12} ${x - hw * 0.94} ${bottom} Q ${x - hw * 1.1} ${(top + bottom) / 2} ${x - hw} ${top} Z`;
-const jib = (mx: number, top: number, bowX: number, bowY: number, foot: number) => `M ${mx + 4} ${top} L ${bowX} ${bowY} L ${mx + 6} ${foot} Z`;
+export const jib = (mx: number, top: number, bowX: number, bowY: number, foot: number) => `M ${mx + 4} ${top} L ${bowX} ${bowY} L ${mx + 6} ${foot} Z`;
 // The circle that fits a triangular sail (vertical luff, horizontal foot).
-const inTriangle = (mx: number, top: number, foot: number, w: number) => {
+export const inTriangle = (mx: number, top: number, foot: number, w: number) => {
   const a = foot - top;
   const r = (a + w - Math.hypot(a, w)) / 2;
   return { cx: mx - r * 0.98, cy: foot - r * 1.02, r: r * 0.8 };
 };
 
 // The masts and sails of each boat, shared by the families that use classic rigs.
-type Plan = {
+export type Plan = {
   deck: number;
   bow: { x: number; y: number };
   // Fore-and-aft sails: mast x, height above deck, reach back.
@@ -84,7 +84,7 @@ type Plan = {
   jib: boolean;
   castle?: { x0: number; x1: number; h: number };
 };
-const plan = (kind: BoatKind): Plan => {
+export const plan = (kind: BoatKind): Plan => {
   const { L, F } = RIG[kind];
   const deck = -F;
   const bow = { x: L / 2 + L * 0.05, y: deck * 1.3 };
@@ -163,7 +163,7 @@ const galleonHull = (p: Plan, L: number) => {
   const top = p.deck - c.h;
   return `M ${c.x0} ${top} L ${c.x1} ${top} L ${c.x1} ${p.deck} L ${L / 2 - 20} ${p.deck} L ${L / 2 + 26} ${p.deck - 22} Q ${L / 2 - 15} ${D * 0.7} ${L / 2 - 70} ${D * 0.72} L ${-L / 2 + 60} ${D * 0.72} Q ${c.x0 + 6} ${D * 0.5} ${c.x0} ${top} Z`;
 };
-const hullFor = (kind: BoatKind, p: Plan) => (kind === "galleon" ? galleonHull(p, RIG.galleon.L) : classicHull(kind));
+export const hullFor = (kind: BoatKind, p: Plan) => (kind === "galleon" ? galleonHull(p, RIG.galleon.L) : classicHull(kind));
 
 // Masts, booms and stays drawn the same way for the classic rigs.
 const Spars: React.FC<{ p: Plan; L: number; color: string; rope: string; pennant?: string }> = ({ p, L, color, rope, pennant }) => (
@@ -186,7 +186,7 @@ const Spars: React.FC<{ p: Plan; L: number; color: string; rope: string; pennant
 );
 
 // A planked hull: fill, plank lines, the shaded bottom and a gunwale.
-const PlankHull: React.FC<{ d: string; uid: string; L: number; F: number; wood: string; line: string; dark: string; trim?: string }> = ({ d, uid, L, F, wood, line, dark, trim }) => (
+export const PlankHull: React.FC<{ d: string; uid: string; L: number; F: number; wood: string; line: string; dark: string; trim?: string }> = ({ d, uid, L, F, wood, line, dark, trim }) => (
   <g>
     <defs>
       <clipPath id={`lab-hull-${uid}`}>

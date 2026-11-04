@@ -9,7 +9,7 @@ body {
 }
 .lab {
   padding: 28px 24px 60px;
-  max-width: 1500px;
+  max-width: 1700px;
   margin: 0 auto;
 }
 .lab header h1 {
@@ -18,32 +18,26 @@ body {
   font-weight: 800;
 }
 .lab header p {
-  margin: 4px 0 24px;
+  margin: 4px 0 18px;
+  color: #b9d3dd;
+  max-width: 900px;
+}
+.lab-row h2 {
+  margin: 22px 0 8px;
+  font-size: 22px;
+}
+.lab-row h2 span {
+  font-size: 14px;
+  font-weight: 400;
   color: #b9d3dd;
 }
-.lab-grid {
+.lab-cells {
   display: grid;
-  grid-template-columns: minmax(150px, 220px) repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  overflow-x: auto;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
 }
-.lab-col {
-  align-self: end;
-  text-align: center;
-  padding-bottom: 4px;
-}
-.lab-col span {
-  color: #b9d3dd;
-  font-size: 13px;
-}
-.lab-row-head h2 {
-  margin: 8px 0 2px;
-  font-size: 19px;
-}
-.lab-row-head p {
+.lab-cell {
   margin: 0;
-  color: #b9d3dd;
-  font-size: 13px;
 }
 .lab-cell svg {
   display: block;
@@ -51,10 +45,13 @@ body {
   height: auto;
   border-radius: 12px;
 }
-.lab-current {
-  opacity: 0.75;
+.lab-cell figcaption {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #b9d3dd;
 }
-.lab-row-head.lab-current + .lab-cell,
-.lab-cell.lab-current {
-  margin-bottom: 18px;
+.lab-current svg {
+  opacity: 0.7;
+  outline: 2px dashed rgba(255, 255, 255, 0.25);
+  outline-offset: -2px;
 }
