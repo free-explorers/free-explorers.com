@@ -80,7 +80,7 @@ export const BoatLab: React.FC = () => (
   <main className="lab">
     <header>
       <h1>Galleon rework</h1>
-      <p>Bolder, with a single main mast carrying one stack of square sails. The current galleon first, for comparison.</p>
+      <p>In the site's flat style, three masts: a rear sail, the main mast with a stack of square sails, a smaller triangular sail in front. The current galleon first, for comparison.</p>
     </header>
     <section className="lab-row">
       <div className="lab-cells lab-cells-big">
