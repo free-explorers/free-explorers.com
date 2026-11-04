@@ -84,10 +84,11 @@ const BEAM_LENGTH = 2600;
 // faint one and a narrower one inside it (brighter where they overlap), each flaring at its
 // own angle from the pill. The pill itself stays as a solid white stub at the beam's root.
 const BEAM_LAYERS = [
-  { half: (9 * Math.PI) / 180, opacity: 0.1 },
-  { half: (4 * Math.PI) / 180, opacity: 0.12 },
+  { half: (9 * Math.PI) / 180, opacity: 0.22 },
+  { half: (4 * Math.PI) / 180, opacity: 0.3 },
 ];
-const BEAM_COLOR = "#fff3c4";
+// Warm lamp light, leaning amber so it stays warm over the teal sky.
+const BEAM_COLOR = "#ffc456";
 
 // Beams growing out of the logo's pills, along each one's direction: they shoot out, hold,
 // and fade out gently as the next ones come on (the last one stays).
