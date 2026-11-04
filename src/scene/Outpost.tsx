@@ -77,12 +77,9 @@ export const OutpostBack: React.FC<Props & { style?: "hall" | "church" }> = ({ x
 
   return (
     <g>
-      {/* Rock */}
-      <path d={rock} fill={ROCK} />
-      <path d={face} fill={ROCK_DARK} />
-      <path d={`M ${x - 5200} ${foot - 160} L ${x - 4200} ${foot}`} stroke={ROCK_LIGHT} strokeWidth={40} strokeLinecap="round" />
       {/* Stone steps down to the quay: the flight's block, its mortar courses, a shaded
-          face, and a lighter worn tread on each step */}
+          face, and a lighter worn tread on each step. Drawn behind the rock, so the rock
+          comes round in front of the flight's foot and the steps sit in it. */}
       <defs>
         <clipPath id="fe-stairs">
           <path d={flight} />
@@ -104,6 +101,10 @@ export const OutpostBack: React.FC<Props & { style?: "hall" | "church" }> = ({ x
       {Array.from({ length: STEPS }, (_, i) => (
         <rect key={i} x={stairs.x0 + i * run} y={stairs.top + i * rise - 6} width={run + 8} height={22} rx={6} fill={STONE} />
       ))}
+      {/* Rock */}
+      <path d={rock} fill={ROCK} />
+      <path d={face} fill={ROCK_DARK} />
+      <path d={`M ${x - 5200} ${foot - 160} L ${x - 4200} ${foot}`} stroke={ROCK_LIGHT} strokeWidth={40} strokeLinecap="round" />
       <rect x={x + 1650} y={water - 110} width={1300} height={140} rx={12} fill={STONE} />
       {Array.from({ length: 5 }, (_, i) => (
         <rect key={i} x={x + 1650 + i * 260} y={water - 110} width={8} height={140} fill={STONE_LINE} />
