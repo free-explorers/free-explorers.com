@@ -27,7 +27,7 @@ export const BOAT_SPEC: Record<BoatKind, Spec> = {
 };
 export const boatHeight = (kind: BoatKind) => {
   const s = BOAT_SPEC[kind];
-  return kind === "galleon" ? GALLEON.deck + 330 + 30 : Math.max(...s.masts.map((m) => m.h)) + s.L * 0.14 + 24;
+  return kind === "galleon" ? GALLEON.deck + GALLEON.main.h + 20 : Math.max(...s.masts.map((m) => m.h)) + s.L * 0.14 + 24;
 };
 
 const Hull: React.FC<{ L: number }> = ({ L }) => {
@@ -58,6 +58,12 @@ const Hull: React.FC<{ L: number }> = ({ L }) => {
 
 // A main sail behind a mast, bellied out towards the stern; returns the sail and the circle
 // that fits inside it (for the avatar).
+// A triangular sail behind a mast (luff on the mast, foot on a boom), and its shaded half.
+const triangleSail = (x: number, head: number, foot: number, w: number) =>
+  `M ${x} ${head} L ${x} ${foot} L ${x - w} ${foot} Q ${x - w * 0.36} ${(head + foot) / 2 + 6} ${x} ${head} Z`;
+const triangleShade = (x: number, head: number, foot: number, w: number) =>
+  `M ${x} ${head} L ${x - w * 0.5} ${foot} L ${x - w} ${foot} Q ${x - w * 0.36} ${(head + foot) / 2 + 6} ${x} ${head} Z`;
+
 const mainSail = (mast: Mast, deck: number, width: number) => {
   const top = deck - mast.h + 8;
   const foot = deck - 12;
@@ -177,69 +183,82 @@ const Sailboat: React.FC<ShapeProps> = ({ kind, active = true, image, name = "",
   );
 };
 
-// The galleon: a deep hull with a raised stern castle (lit windows), a gold band and a row of
-// gun ports; square sails on the fore and main masts, a lateen sail on the mizzen over the
-// castle, a jib on the bowsprit, gold pennants. The sponsor's logo is on the main course.
-const GALLEON = { deck: 62, castle: 116 };
-const squareSail = (x: number, top: number, bottom: number, hw: number) =>
-  `M ${x - hw} ${top} L ${x + hw} ${top} Q ${x + hw * 1.1} ${(top + bottom) / 2} ${x + hw * 0.94} ${bottom} Q ${x} ${bottom + 12} ${x - hw * 0.94} ${bottom} Q ${x - hw * 1.1} ${(top + bottom) / 2} ${x - hw} ${top} Z`;
+// The galleon (enterprise sponsors), sleek: a low stern castle with lit windows, a gold band;
+// a main mast with two big square sails, a jib on the bowsprit, a triangular rear sail on the
+// mizzen over the castle, pennants in the boat's colour. The sponsor's avatar is on the main
+// course, their name along the hull. Former sponsors (and the galleon for sale) have their
+// sails furled on the yards.
+const GALLEON = { deck: 62, castle: 36, main: { x: -20, h: 340 }, mizzen: { x: -170, h: 190 } };
+const GALLEON_SAILS = [
+  { top: -GALLEON.deck - 170, bottom: -GALLEON.deck - 34, topHw: 100, bottomHw: 112 },
+  { top: -GALLEON.deck - 316, bottom: -GALLEON.deck - 182, topHw: 76, bottomHw: 94 },
+];
 
 const Galleon: React.FC<ShapeProps> = ({ active: sailing = true, image, name = "", uid, forSale = false }) => {
   const active = sailing && !forSale;
   const color = boatInfo("galleon").color;
   const D = -GALLEON.deck;
-  const C = -GALLEON.castle;
+  const C = D - GALLEON.castle;
+  const { main, mizzen } = GALLEON;
+  const top = D - main.h;
+  const mizzenTop = C - mizzen.h;
   const hull = `M -238 ${C} L -118 ${C} L -118 ${D} L 200 ${D} L 246 ${D - 22} Q 205 40 150 44 L -160 44 Q -222 32 -238 ${C} Z`;
-  // Masts: mizzen on the castle, main amidships, fore towards the bow.
-  const main = { x: -10, h: 330 };
-  const fore = { x: 135, h: 280 };
-  const mizzen = { x: -170, h: 210 };
-  const courses = [
-    { m: main, hw: 82, lower: [D - 150, D - 34], upper: [D - 280, D - 162] },
-    { m: fore, hw: 66, lower: [D - 130, D - 34], upper: [D - 240, D - 142] },
-  ];
-  const avatarAt = active ? { cx: main.x, cy: D - 94, r: 34 } : { cx: -178, cy: C + 26, r: 16 };
-  const sprit = { x: 312, y: D - 64 };
+  const sprit = { x: 330, y: D - 66 };
+  // The forestay from the masthead to the bowsprit's end, which the jib is set on.
+  const stay = (t: number) => ({ x: main.x + (sprit.x - main.x) * t, y: top + (sprit.y - top) * t });
+  const jibHead = stay(0.3);
+  const jibTack = stay(0.97);
+  const course = GALLEON_SAILS[0];
+  const avatarAt = active ? { cx: main.x, cy: (course.top + course.bottom) / 2 + 2, r: 40 } : { cx: -190, cy: C + 30, r: 13 };
   return (
     <g>
-      {/* Masts, bowsprit and stays */}
-      {[mizzen, main, fore].map((m, i) => {
-        const base = m === mizzen ? C : D;
-        return (
-          <g key={i}>
-            <rect x={m.x - 4} y={base - m.h} width={8} height={m.h} rx={3} fill={WOOD_DARK} />
-            <path d={`M ${m.x + 3} ${base - m.h} L ${m.x + 3 + 70} ${base - m.h + 9} L ${m.x + 3} ${base - m.h + 18} Z`} fill={color} />
-          </g>
-        );
-      })}
+      {/* Bowsprit and stays */}
       <line x1={232} y1={D - 16} x2={sprit.x} y2={sprit.y} stroke={WOOD_DARK} strokeWidth={6} strokeLinecap="round" />
-      <line x1={fore.x} y1={D - fore.h} x2={sprit.x} y2={sprit.y} stroke={ROPE} strokeWidth={1.6} opacity={0.75} />
-      <line x1={main.x} y1={D - main.h} x2={fore.x} y2={D - fore.h + 30} stroke={ROPE} strokeWidth={1.6} opacity={0.75} />
-      <line x1={mizzen.x} y1={C - mizzen.h} x2={main.x} y2={D - main.h + 40} stroke={ROPE} strokeWidth={1.6} opacity={0.75} />
+      <line x1={main.x} y1={top} x2={sprit.x} y2={sprit.y} stroke={ROPE} strokeWidth={1.5} opacity={0.8} />
+      <line x1={mizzen.x} y1={mizzenTop} x2={main.x} y2={top + 40} stroke={ROPE} strokeWidth={1.5} opacity={0.8} />
+      {/* Shrouds on the main mast */}
+      {[-60, -36, 16, 40].map((dx) => (
+        <line key={dx} x1={main.x + dx} y1={D} x2={main.x} y2={course.top - 6} stroke={ROPE} strokeWidth={1.2} opacity={0.6} />
+      ))}
+      {/* Masts and pennants */}
+      {[
+        { x: mizzen.x, top: mizzenTop, h: mizzen.h, w: 7, flag: 66 },
+        { x: main.x, top, h: main.h, w: 9, flag: 90 },
+      ].map((m, i) => (
+        <g key={i}>
+          <rect x={m.x - m.w / 2} y={m.top} width={m.w} height={m.h} rx={3} fill={WOOD_DARK} />
+          <path d={`M ${m.x + 3} ${m.top} L ${m.x + m.flag} ${m.top + 8} L ${m.x + 3} ${m.top + 16} Z`} fill={color} />
+        </g>
+      ))}
       {active ? (
         <>
-          {/* Lateen sail on the mizzen */}
-          <path d={`M ${mizzen.x + 4} ${C - mizzen.h + 20} L ${mizzen.x + 60} ${C - 26} L ${mizzen.x - 70} ${C - 26} Z`} fill={SAIL_SHADE} />
-          {/* Jib on the bowsprit */}
-          <path d={`M ${fore.x + 8} ${D - fore.h + 40} L ${sprit.x - 8} ${sprit.y + 2} L ${fore.x + 30} ${D - 40} Z`} fill={SAIL_SHADE} />
-          {/* Square sails, with their yards */}
-          {courses.map(({ m, hw, lower, upper }, i) => (
-            <g key={i}>
-              <path d={squareSail(m.x, upper[0], upper[1], hw * 0.82)} fill={i === 0 ? SAIL : SAIL_SHADE} />
-              <path d={squareSail(m.x, lower[0], lower[1], hw)} fill={i === 0 ? SAIL : SAIL_SHADE} />
-              <rect x={m.x - hw * 0.82 - 8} y={upper[0] - 4} width={hw * 1.64 + 16} height={6} rx={3} fill={WOOD_DARK} />
-              <rect x={m.x - hw - 8} y={lower[0] - 4} width={hw * 2 + 16} height={6} rx={3} fill={WOOD_DARK} />
-            </g>
-          ))}
+          {/* The rear sail over the stern castle */}
+          <path d={triangleSail(mizzen.x - 3, mizzenTop + 18, C - 14, 68)} fill={SAIL} />
+          <path d={triangleShade(mizzen.x - 3, mizzenTop + 18, C - 14, 68)} fill={SAIL_SHADE} />
+          <rect x={mizzen.x - 74} y={C - 14} width={71} height={3.5} rx={1.5} fill={WOOD_DARK} />
+          {/* The main mast's square sails, a little narrower at the head, the right half in shade */}
+          {GALLEON_SAILS.map((s, i) => {
+            const x = main.x;
+            const belly = (s.bottom - s.top) * 0.08;
+            return (
+              <g key={i}>
+                <path d={`M ${x - s.topHw} ${s.top} L ${x + s.topHw} ${s.top} L ${x + s.bottomHw} ${s.bottom} Q ${x} ${s.bottom + belly} ${x - s.bottomHw} ${s.bottom} Z`} fill={SAIL} />
+                <path d={`M ${x} ${s.top} L ${x + s.topHw} ${s.top} L ${x + s.bottomHw} ${s.bottom} Q ${x + s.bottomHw * 0.5} ${s.bottom + belly * 0.8} ${x} ${s.bottom + belly} Z`} fill={SAIL_SHADE} />
+                <rect x={x - s.topHw - 8} y={s.top - 3} width={s.topHw * 2 + 16} height={5} rx={2.5} fill={WOOD_DARK} />
+              </g>
+            );
+          })}
+          {/* The jib */}
+          <path d={`M ${jibHead.x} ${jibHead.y} L ${jibTack.x - 4} ${jibTack.y + 2} L 172 ${D - 26} Z`} fill={SAIL_SHADE} />
         </>
       ) : (
-        // Former sponsors: sails furled on the yards.
-        courses.map(({ m, hw, lower, upper }, i) => (
-          <g key={i}>
-            <rect x={m.x - hw * 0.82 - 8} y={upper[0] - 6} width={hw * 1.64 + 16} height={12} rx={6} fill={SAIL_SHADE} />
-            <rect x={m.x - hw - 8} y={lower[0] - 6} width={hw * 2 + 16} height={12} rx={6} fill={SAIL_SHADE} />
-          </g>
-        ))
+        // Sails furled: rolled on the yards and the rear boom.
+        <g>
+          {GALLEON_SAILS.map((s, i) => (
+            <rect key={i} x={main.x - s.topHw - 8} y={s.top - 6} width={s.topHw * 2 + 16} height={12} rx={6} fill={SAIL_SHADE} />
+          ))}
+          <rect x={mizzen.x - 74} y={C - 20} width={71} height={9} rx={4.5} fill={SAIL_SHADE} />
+        </g>
       )}
       {/* Hull */}
       <defs>
@@ -252,27 +271,21 @@ const Galleon: React.FC<ShapeProps> = ({ active: sailing = true, image, name = "
         {[D + 22, D + 52, D + 80].map((y) => (
           <rect key={y} x={-260} y={y} width={520} height={3} fill={WOOD_LINE} />
         ))}
-        {/* Gold band, and the gun ports under it (the sponsor's name takes their place) */}
-        <rect x={-260} y={D + 8} width={520} height={7} fill={GOLD} />
-        {!name &&
-          Array.from({ length: 8 }, (_, k) => <rect key={k} x={-96 + k * 38} y={D + 26} width={16} height={14} rx={2} fill="#2a1a10" />)}
-        {/* Stern castle: lit windows */}
-        {[0, 1, 2].map((k) => (
-          <rect key={k} x={-224 + k * 34} y={C + 14} width={20} height={22} rx={6} fill="#ffd66b" />
-        ))}
-        <rect x={-260} y={C + 44} width={160} height={5} fill={GOLD} />
+        <rect x={-260} y={D + 8} width={520} height={6} fill={GOLD} />
         <rect x={-260} y={-1} width={520} height={60} fill={WOOD_DARK} opacity={0.55} />
       </g>
-      {name && !forSale && <HullName name={name} x={50} y={D + 34} size={NAME_SIZE.galleon} max={300} />}
-      {/* Rails along the castle and the deck */}
+      {[0, 1, 2].map((k) => (
+        <rect key={k} x={-224 + k * 34} y={C + GALLEON.castle * 0.26} width={20} height={GALLEON.castle * 0.4} rx={4} fill="#ffd66b" />
+      ))}
       <path d={`M -240 ${C} L -118 ${C} M -118 ${D} L 200 ${D} L 246 ${D - 22}`} stroke={WOOD_DARK} strokeWidth={6} strokeLinecap="round" fill="none" />
+      {name && !forSale && <HullName name={name} x={50} y={D + 34} size={NAME_SIZE.galleon} max={300} />}
       {forSale ? (
         // A wooden board hung from the main lower yard.
         <g>
-          <line x1={main.x - 46} y1={D - 150} x2={main.x - 40} y2={D - 128} stroke={ROPE} strokeWidth={2} />
-          <line x1={main.x + 46} y1={D - 150} x2={main.x + 40} y2={D - 128} stroke={ROPE} strokeWidth={2} />
-          <rect x={main.x - 62} y={D - 130} width={124} height={50} rx={6} fill="#f4f1ea" stroke={WOOD_DARK} strokeWidth={4} />
-          <text x={main.x} y={D - 105} dy="0.36em" textAnchor="middle" fontSize={26} fontWeight={800} fill="#7a2e1d" letterSpacing={1}>
+          <line x1={main.x - 46} y1={course.top} x2={main.x - 40} y2={course.top + 26} stroke={ROPE} strokeWidth={2} />
+          <line x1={main.x + 46} y1={course.top} x2={main.x + 40} y2={course.top + 26} stroke={ROPE} strokeWidth={2} />
+          <rect x={main.x - 62} y={course.top + 24} width={124} height={50} rx={6} fill="#f4f1ea" stroke={WOOD_DARK} strokeWidth={4} />
+          <text x={main.x} y={course.top + 49} dy="0.36em" textAnchor="middle" fontSize={26} fontWeight={800} fill="#7a2e1d" letterSpacing={1}>
             FOR SALE
           </text>
         </g>

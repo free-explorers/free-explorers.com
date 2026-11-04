@@ -155,7 +155,7 @@ export const JoinFleet: React.FC<{
 
             {/* The boat this amount sails */}
             <div className="join-preview">
-              <svg viewBox="-330 -450 680 520" aria-hidden="true">
+              <svg viewBox="-340 -490 700 560" aria-hidden="true">
                 <Bob dy={4} deg={kind === "galleon" ? 0.8 : 1.4}>
                   {/* Grows with the amount within its kind, from the waterline up */}
                   <g transform={`scale(${sizeWithin(monthly)})`}>

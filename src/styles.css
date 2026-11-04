@@ -488,7 +488,7 @@ a:focus-visible {
 .join-preview svg {
   width: min(320px, 70vw);
   height: auto;
-  aspect-ratio: 680 / 520;
+  aspect-ratio: 700 / 560;
 }
 .join-boat {
   display: flex;
