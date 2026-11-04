@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 import { TIERS, type Member, type Tier } from "../members";
 
 // A member's sailing boat, in the flat style of the teaser's house-boat: a wooden hull, cream
@@ -122,7 +122,9 @@ export const BoatShape: React.FC<{ tier: Tier; active?: boolean; image?: string 
         <rect x={aft.x - L * 0.36} y={deck - 18} width={L * 0.36} height={8} rx={4} fill={SAIL_SHADE} />
       )}
       <Hull L={L} />
-      {/* The member's avatar: on the main sail, or on the hull when the sails are furled */}
+      {/* The member's avatar: on the main sail, or on the hull when the sails are furled.
+          `data-cx` lets the fleet mirror it back when the boat sails left. */}
+      <g className="avatar" data-cx={avatarAt.cx}>
       <defs>
         <clipPath id={`av-${uid}`}>
           <circle cx={avatarAt.cx} cy={avatarAt.cy} r={avatarAt.r} />
@@ -147,27 +149,49 @@ export const BoatShape: React.FC<{ tier: Tier; active?: boolean; image?: string 
           onError={() => setBroken(true)}
         />
       )}
+      </g>
     </g>
   );
 };
 
-// A member's boat on the sea: bobbing, linking to their profile, with their name on hover.
-export const MemberBoat: React.FC<{ member: Member; x: number; y: number; scale: number; delay: number }> = ({ member, x, y, scale, delay }) => {
+// A member's boat on the sea, bobbing, linking to their profile, with their name on hover.
+// The fleet moves it: `parts` hands it the groups to transform (position, the boat's scale
+// and heading, the label's height) and `onHold` pauses it while it's pointed at.
+export type BoatParts = { root: SVGGElement; boat: SVGGElement; label: SVGGElement; avatar: SVGGElement | null; top: number };
+export const MemberBoat: React.FC<{
+  member: Member;
+  delay: number;
+  parts: (p: BoatParts | null) => void;
+  onHold: (held: boolean) => void;
+}> = ({ member, delay, parts, onHold }) => {
   const top = boatHeight(member.tier);
   const tier = TIERS.find((t) => t.id === member.tier)!;
+  const root = useRef<SVGGElement>(null);
+  const boat = useRef<SVGGElement>(null);
+  const label = useRef<SVGGElement>(null);
+  useLayoutEffect(() => {
+    parts({ root: root.current!, boat: boat.current!, label: label.current!, avatar: boat.current!.querySelector<SVGGElement>(".avatar"), top });
+    return () => parts(null);
+  }, [parts, top]);
   return (
-    <g transform={`translate(${x} ${y}) scale(${scale})`}>
+    <g ref={root}>
       <a
         href={member.profile}
         target="_blank"
         rel="noreferrer"
         className={`boat${member.active ? "" : " boat-former"}`}
         aria-label={`${member.name}, ${member.active ? tier.name : `former ${tier.name}`}`}
+        onPointerEnter={() => onHold(true)}
+        onPointerLeave={() => onHold(false)}
+        onFocus={() => onHold(true)}
+        onBlur={() => onHold(false)}
       >
-        <g className="bob" style={{ animationDelay: `${-delay}s` }}>
-          <BoatShape tier={member.tier} active={member.active} image={member.image} name={member.name} uid={member.id.replace(/\W/g, "")} />
+        <g ref={boat}>
+          <g className="bob" style={{ animationDelay: `${-delay}s` }}>
+            <BoatShape tier={member.tier} active={member.active} image={member.image} name={member.name} uid={member.id.replace(/\W/g, "")} />
+          </g>
         </g>
-        <g className="boat-label" transform={`translate(0 ${-top - 14}) scale(${1 / scale})`}>
+        <g ref={label} className="boat-label">
           <text textAnchor="middle" className="boat-name">
             {member.name}
           </text>

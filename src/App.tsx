@@ -152,7 +152,7 @@ export const App: React.FC = () => {
             transition: resizing || reduced ? "none" : `transform ${SLIDE_MS}ms cubic-bezier(0.65, 0, 0.35, 1)`,
           }}
         >
-          <World pageW={frame.pageW} pages={PAGES.length} members={members} beamTime={beamTime} reserveRight={reserveRight} />
+          <World pageW={frame.pageW} pages={PAGES.length} members={members} beamTime={beamTime} reserveRight={reserveRight} page={index} />
         </g>
       </svg>
 

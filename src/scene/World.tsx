@@ -1,7 +1,8 @@
 import React, { useMemo } from "react";
 import { Lighthouse, lighthouseFoot, lighthouseHeight, type LighthouseVariant } from "./Lighthouse";
 import { OutpostBack, TowerDetails } from "./Outpost";
-import { BOAT_SPEC, MemberBoat } from "./Boat";
+import { BOAT_SPEC } from "./Boat";
+import { Fleet } from "./Fleet";
 import type { Member } from "../members";
 import boatMeta from "../data/veshell-boat.json";
 
@@ -90,7 +91,7 @@ const SeaFront: React.FC<{ x0: number; x1: number }> = ({ x0, x1 }) => (
 // Where each member's boat goes: active explorers in three rows, the biggest boats in
 // front; former explorers further out on the horizon, past the quay. Everything shrinks a
 // little if the sea gets crowded.
-type Slot = { member: Member; x: number; y: number; scale: number; delay: number };
+export type Slot = { member: Member; x: number; y: number; scale: number; delay: number; shrink: number };
 const ROWS = [
   { y: 945, scale: 0.92 },
   { y: 860, scale: 0.72 },
@@ -129,7 +130,7 @@ export const layoutFleet = (members: Member[], pageW: number, reserveRight: numb
       placed.forEach((m, i) => {
         const w = BOAT_SPEC[m.tier].L * 1.35 * s;
         const j = (hash(m.id) - 0.5) * Math.min(gap, 80);
-        slots.push({ member: m, x: x + w / 2 + j, y: row.y + (i % 2) * 10 * s, scale: s, delay: hash(m.id + "d") * 6 });
+        slots.push({ member: m, x: x + w / 2 + j, y: row.y + (i % 2) * 10 * s, scale: s, delay: hash(m.id + "d") * 6, shrink });
         x += w + gap;
       });
     });
@@ -144,7 +145,7 @@ export const layoutFleet = (members: Member[], pageW: number, reserveRight: numb
     let hx = hLeft + hgap;
     former.forEach((m) => {
       const w = BOAT_SPEC[m.tier].L * 1.4 * hs;
-      slots.push({ member: m, x: hx + w / 2, y: HORIZON.y, scale: hs, delay: hash(m.id + "d") * 6 });
+      slots.push({ member: m, x: hx + w / 2, y: HORIZON.y, scale: hs, delay: hash(m.id + "d") * 6, shrink });
       hx += w + hgap;
     });
     if (ok) return slots.sort((a, b) => a.y - b.y);
@@ -223,9 +224,11 @@ export const World: React.FC<{
   pages: number;
   members: Member[];
   beamTime: number;
+  // The page in view (boats only turn about out of sight).
+  page: number;
   // Width of the text column on the right, in world units (kept clear on each page).
   reserveRight: number;
-}> = ({ pageW, pages, members, beamTime, reserveRight }) => {
+}> = ({ pageW, pages, members, beamTime, reserveRight, page }) => {
   const x0 = -pageW;
   const x1 = pageW * (pages + 1);
   const fleet = useMemo(() => layoutFleet(members, pageW, reserveRight), [members, pageW, reserveRight]);
@@ -247,13 +250,12 @@ export const World: React.FC<{
       <Streaks x0={x0} x1={x1} />
       {/* Page 1: the lighthouse and the fleet of explorers */}
       <Island x={islandX(pageW)} time={beamTime} />
-      {fleet.map((f) => (
-        <MemberBoat key={f.member.id} member={f.member} x={f.x} y={f.y} scale={f.scale} delay={f.delay} />
-      ))}
       {/* Page 2: Veshell */}
       <VeshellBoat cx={pageW + Math.min(Math.max(usable * 0.5, 420), pageW / 2)} maxWidth={Math.min(usable, pageW) * 0.92} />
       {/* Page 3: the Architects' jetty */}
       <Jetty x={pageW * 2 + Math.max(60, usable * 0.5 - 300)} architects={ARCHITECTS} />
+      {/* The explorers' boats, sailing across every page */}
+      <Fleet slots={fleet} seaW={pageW * pages} page={page} pageW={pageW} />
       <SeaFront x0={x0} x1={x1} />
     </g>
   );
