@@ -10,7 +10,7 @@ export type BoatKind = "dinghy" | "sloop" | "brig" | "galleon";
 // Amounts are per month (a yearly contribution counts for a twelfth of it); `max` null is open.
 export const BOATS: { id: BoatKind; name: string; range: string; min: number; max: number | null; color: string }[] = [
   { id: "galleon", name: "Galleon", range: "$500+", min: 500, max: null, color: "#f9c46b" },
-  { id: "brig", name: "Brigantine", range: "$50–450", min: 50, max: 450, color: "#cba6f7" },
+  { id: "brig", name: "Brigantine", range: "$50–400", min: 50, max: 400, color: "#cba6f7" },
   { id: "sloop", name: "Sloop", range: "$10–40", min: 10, max: 40, color: "#89dceb" },
   { id: "dinghy", name: "Dinghy", range: "$1–5", min: 1, max: 5, color: "#a6e3a1" },
 ];
@@ -112,10 +112,10 @@ export const useMembers = () => {
   return { members, refresh };
 };
 
-// The join slider's amounts: $1 steps to 5, then 10, $5 steps to 30, $10 to 100, $50 to
-// 450, then $500 steps to 5,000 (enterprise sponsors).
+// The join slider's amounts: $1 steps to 5, then 10, $5 steps to 30, $10 to 100, $100 to
+// 400, then $500 steps to 5,000 (enterprise sponsors).
 const range = (from: number, to: number, step: number) => Array.from({ length: Math.floor((to - from) / step) + 1 }, (_, i) => from + i * step);
-export const AMOUNTS = [...range(1, 5, 1), 10, ...range(15, 30, 5), ...range(40, 100, 10), ...range(150, 450, 50), ...range(500, 5000, 500)];
+export const AMOUNTS = [...range(1, 5, 1), 10, ...range(15, 30, 5), ...range(40, 100, 10), ...range(200, 400, 100), ...range(500, 5000, 500)];
 
 export type Frequency = "month" | "year" | "once";
 export const FREQUENCIES: { id: Frequency; label: string }[] = [
