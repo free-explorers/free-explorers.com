@@ -258,7 +258,7 @@ const Jetty: React.FC<{ x: number; architects: { name: string; image: string; ur
 export const ARCHITECTS = [{ name: "PapyElGringo", image: "https://github.com/PapyElGringo.png?size=160", url: "https://github.com/PapyElGringo" }];
 
 // While no enterprise sponsor sails one, a galleon waits moored at the lighthouse's quay,
-// sails furled, for sale: pointing at it explains, clicking it opens the join panel on the
+// sails furled, for rent: pointing at it explains, clicking it opens the join panel on the
 // galleon. Its stern is made fast to the quay's mooring post.
 const POST = { x: 2820, top: -270 }; // the quay's mooring post, in house units around the lighthouse's foot
 const GalleonForSale: React.FC<{ pageW: number; onPick: () => void }> = ({ pageW, onPick }) => {
@@ -272,7 +272,7 @@ const GalleonForSale: React.FC<{ pageW: number; onPick: () => void }> = ({ pageW
     <a
       href="#join"
       className="boat"
-      aria-label={`Galleon for sale: ready to set sail for its first enterprise sponsor, ${galleon.range} a month`}
+      aria-label={`Galleon for rent: ready to set sail for its first enterprise sponsor, ${galleon.range} a month`}
       onClick={(e) => {
         e.preventDefault();
         onPick();
@@ -289,7 +289,7 @@ const GalleonForSale: React.FC<{ pageW: number; onPick: () => void }> = ({ pageW
       </g>
       <g className="boat-label" transform={`translate(${x} ${y - 460 * scale - 40})`}>
         <text textAnchor="middle" className="boat-name">
-          Galleon for sale
+          Galleon for rent
         </text>
         <text textAnchor="middle" y={22} className="boat-tier">
           Ready to set sail for its first enterprise sponsor

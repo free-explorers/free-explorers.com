@@ -162,7 +162,7 @@ const Avatar: React.FC<{ at: Spot; color: string; image?: string | null; name: s
   );
 };
 
-// `forSale` (galleon only): moored, sails furled, a FOR SALE board on the main mast.
+// `forSale` (galleon only): moored, sails furled, a FOR RENT board on the main mast.
 // The donor's name painted along the hull in cream capitals, squeezed to fit if long. It
 // carries data-cx like the avatar so the fleet keeps it readable when the boat sails left.
 const HullName: React.FC<{ name: string; x: number; y: number; size: number; max: number }> = ({ name, x, y, size, max }) => {
@@ -390,7 +390,7 @@ const Sailboat: React.FC<ShapeProps> = ({ kind, active = true, image, name = "",
 // a gold band; a triangular rear sail on the mizzen over the castle, a main mast with two big
 // square sails, a smaller triangular sail on the foremast and a jib on the bowsprit, pennants
 // in the boat's colour. The sponsor's avatar is on the main
-// course, their name along the hull. Former sponsors (and the galleon for sale) have their
+// course, their name along the hull. Former sponsors (and the galleon for rent) have their
 // sails furled on the yards.
 const GALLEON = { deck: 62, castle: 36, main: { x: -20, h: 340 }, mizzen: { x: -170, h: 190 }, fore: { x: 132, h: 250 } };
 const GALLEON_SAILS = [
@@ -560,11 +560,11 @@ const Galleon: React.FC<ShapeProps> = ({ active: sailing = true, image, name = "
       {forSale ? (
         // A wooden board hung from the main lower yard.
         <g>
-          <line x1={main.x - 46} y1={course.top} x2={main.x - 40} y2={course.top + 26} stroke={ROPE} strokeWidth={2} />
-          <line x1={main.x + 46} y1={course.top} x2={main.x + 40} y2={course.top + 26} stroke={ROPE} strokeWidth={2} />
-          <rect x={main.x - 62} y={course.top + 24} width={124} height={50} rx={6} fill="#f4f1ea" stroke={WOOD_DARK} strokeWidth={4} />
+          <line x1={main.x - 56} y1={course.top} x2={main.x - 50} y2={course.top + 26} stroke={ROPE} strokeWidth={2} />
+          <line x1={main.x + 56} y1={course.top} x2={main.x + 50} y2={course.top + 26} stroke={ROPE} strokeWidth={2} />
+          <rect x={main.x - 74} y={course.top + 24} width={148} height={50} rx={6} fill="#f4f1ea" stroke={WOOD_DARK} strokeWidth={4} />
           <text x={main.x} y={course.top + 49} dy="0.36em" textAnchor="middle" fontSize={26} fontWeight={800} fill="#7a2e1d" letterSpacing={1}>
-            FOR SALE
+            FOR RENT
           </text>
         </g>
       ) : active ? (
