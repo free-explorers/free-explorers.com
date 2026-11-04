@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BEAM_COUNT, BEAM_STEP } from "./scene/Lighthouse";
-import { BOTTOM, World, beamY } from "./scene/World";
+import { BOTTOM, DIVE_TOP, World, beamY } from "./scene/World";
 import { BoatShape } from "./scene/Boat";
 import { BOATS, COLLECTIVE, useMembers, type BoatKind, type Member } from "./members";
 import { JoinFleet } from "./JoinFleet";
@@ -110,10 +110,15 @@ export const App: React.FC = () => {
   }, [page, reduced]);
   const beamTime = useBeamSweep(sweep, reduced);
 
-  // Arrow keys move between pages.
+  // Under the sea, with the submarines (the dive button, or the up/down arrow keys).
+  const [dived, setDived] = useState(false);
+
+  // Arrow keys move between pages, and dive or surface.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLElement && e.target.closest("input, textarea")) return;
+      if (e.key === "ArrowDown") setDived(true);
+      if (e.key === "ArrowUp") setDived(false);
       const next = e.key === "ArrowRight" ? index + 1 : e.key === "ArrowLeft" ? index - 1 : -1;
       if (next >= 0 && next < PAGES.length) window.location.hash = `/${PAGES[next].id}`;
     };
@@ -156,6 +161,7 @@ export const App: React.FC = () => {
   })();
   const reserveRight = columnPx / frame.unit;
   const active = members.filter((m) => m.active).length;
+  const below = members.length - active;
 
   return (
     <div className="site">
@@ -177,20 +183,38 @@ export const App: React.FC = () => {
         className="scene-track"
         style={{
           width: frame.w * PAGES.length,
-          transform: `translateX(${-index * frame.w}px)`,
+          height: (frame.height * 2 - (BOTTOM - DIVE_TOP)) * frame.unit,
+          transform: `translate(${-index * frame.w}px, ${dived ? -(frame.height - (BOTTOM - DIVE_TOP)) * frame.unit : 0}px)`,
           transition: resizing || reduced ? "none" : `transform ${SLIDE_MS}ms cubic-bezier(0.65, 0, 0.35, 1)`,
         }}
       >
         <svg
           className="scene"
-          viewBox={`0 ${BOTTOM - frame.height} ${frame.pageW * PAGES.length} ${frame.height}`}
-          preserveAspectRatio="xMinYMax slice"
+          viewBox={`0 ${BOTTOM - frame.height} ${frame.pageW * PAGES.length} ${frame.height * 2 - (BOTTOM - DIVE_TOP)}`}
+          preserveAspectRatio="xMinYMin slice"
           role="img"
           aria-label="The Free Explorers lighthouse church by the sea, with a boat for every member of the collective"
         >
-          <World pageW={frame.pageW} pages={PAGES.length} members={members} beamTime={beamTime} reserveRight={reserveRight} page={index} onPick={setJoin} />
+          <World
+            pageW={frame.pageW}
+            pages={PAGES.length}
+            members={members}
+            beamTime={beamTime}
+            reserveRight={reserveRight}
+            page={index}
+            onPick={setJoin}
+            height={frame.height}
+            dived={dived}
+          />
         </svg>
       </div>
+      {/* Dive under the sea, or surface: a porthole button at the bottom */}
+      <button type="button" className={`dive${dived ? " dive-up" : ""}`} onClick={() => setDived((d) => !d)} aria-label={dived ? "Surface" : "Dive under the sea"}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d={dived ? "M12 19V5M6 11l6-6 6 6" : "M12 5v14M6 13l6 6 6-6"} />
+        </svg>
+        <span>{dived ? "Surface" : `Dive · ${below} below`}</span>
+      </button>
 
       <aside className="column" style={frame.narrow ? undefined : { width: columnPx }}>
         <header className="title" style={{ marginTop: titleTop }}>
@@ -208,14 +232,26 @@ export const App: React.FC = () => {
           ))}
         </nav>
         <div className="panels">
-          <Panel on={page === "explorers"}>
+          <Panel on={dived}>
+            <h2>Under the sea</h2>
+            <p>
+              One-time donors and former monthly explorers cruise down here in submarines, each sized by all they've given. Thank you, every one of you.
+            </p>
+            <p className="count">
+              <strong>{below}</strong> {below === 1 ? "submarine" : "submarines"} below
+            </p>
+            <button type="button" className="cta" onClick={() => setJoin(null)}>
+              Come up and join the fleet
+            </button>
+          </Panel>
+          <Panel on={!dived && page === "explorers"}>
             <p>
               The Free Explorers are an <a href={COLLECTIVE}>Open Collective</a> funding and building open-source projects. Every boat on this sea is an Explorer
               backing the people who build them: the Architects.
             </p>
             <div className="count-row">
               <p className="count">
-                <strong>{active}</strong> explorers at sea
+                <strong>{active}</strong> {active === 1 ? "explorer" : "explorers"} at sea
               </p>
               <button type="button" className="cta" onClick={() => setJoin(null)}>
                 Join the fleet
@@ -223,7 +259,7 @@ export const App: React.FC = () => {
             </div>
             <BoatLegend members={members} onPick={setJoin} />
           </Panel>
-          <Panel on={page === "veshell"}>
+          <Panel on={!dived && page === "veshell"}>
             <h2>Veshell</h2>
             <p className="lead">Stop managing windows. Start exploring.</p>
             <p>
@@ -239,7 +275,7 @@ export const App: React.FC = () => {
               </a>
             </div>
           </Panel>
-          <Panel on={page === "architects"}>
+          <Panel on={!dived && page === "architects"}>
             <h2>Architects</h2>
             <p>
               Architects dedicate their time to building the technologies of tomorrow. The collective funds them, so projects are delivered with care and

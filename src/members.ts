@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import snapshot from "./data/members.snapshot.json";
+import ordersSnapshot from "./data/orders.snapshot.json";
 
 // Open Collective members of the Free Explorers, one boat each. The boat follows how much
 // the member gives: a dinghy, a sloop, a brigantine, or a galleon for enterprise sponsors.
@@ -48,8 +49,11 @@ export type Member = {
   // What they give per month (a yearly contribution counts for a twelfth, a one-time gift as
   // is), which sets the boat.
   amount: number;
-  // Still contributing (former explorers sail on the horizon).
+  // Sailing on the surface: an active monthly or yearly contribution. One-time donors and
+  // former monthly/yearly donors cruise below in submarines.
   active: boolean;
+  // All they've given, which sizes their submarine.
+  total: number;
   currency: string;
 };
 
@@ -58,6 +62,7 @@ type Raw = {
   role: string;
   isActive: boolean;
   lastTransactionAmount?: number | null;
+  totalAmountDonated?: number | null;
   currency: string | null;
   profile: string;
   name: string;
@@ -80,6 +85,7 @@ export const toMembers = (raw: Raw[]): Member[] => {
       boat: boatFor(amount),
       amount,
       active: m.isActive,
+      total: m.totalAmountDonated ?? 0,
       currency: m.currency ?? "USD",
     };
     const prev = byProfile.get(m.profile);
@@ -88,7 +94,7 @@ export const toMembers = (raw: Raw[]): Member[] => {
       continue;
     }
     const better = next.active !== prev.active ? next.active : next.amount > prev.amount;
-    byProfile.set(m.profile, { ...(better ? next : prev), active: prev.active || next.active });
+    byProfile.set(m.profile, { ...(better ? next : prev), active: prev.active || next.active, total: Math.max(prev.total, next.total) });
   }
   return [...byProfile.values()].sort((a, b) => Number(b.active) - Number(a.active) || RANK[b.boat] - RANK[a.boat] || b.amount - a.amount);
 };
@@ -99,33 +105,43 @@ export const toMembers = (raw: Raw[]): Member[] => {
 type Order = { status: string; frequency: "MONTHLY" | "YEARLY" | "ONETIME"; amount: { value: number }; fromAccount: { slug: string } };
 const ORDERS_QUERY = `{ account(slug: "${SLUG}") { orders(filter: INCOMING, limit: 1000) { nodes { status frequency amount { value } fromAccount { slug } } } } }`;
 const perMonth = (o: Order) => (o.frequency === "YEARLY" ? o.amount.value / 12 : o.amount.value);
-const monthlyAmounts = (orders: Order[]) => {
-  const out = new Map<string, number>();
-  for (const o of orders) if (o.status === "ACTIVE" && o.frequency !== "ONETIME" && !out.has(o.fromAccount.slug)) out.set(o.fromAccount.slug, perMonth(o));
-  for (const o of orders) if (["PAID", "ACTIVE", "CANCELLED", "EXPIRED"].includes(o.status) && !out.has(o.fromAccount.slug)) out.set(o.fromAccount.slug, perMonth(o));
-  return out;
+// Per contributor (profile slug): their active monthly/yearly contribution per month, if any,
+// and their latest paid contribution otherwise.
+const contributions = (orders: Order[]) => {
+  const recurring = new Map<string, number>();
+  const last = new Map<string, number>();
+  for (const o of orders) if (o.status === "ACTIVE" && o.frequency !== "ONETIME" && !recurring.has(o.fromAccount.slug)) recurring.set(o.fromAccount.slug, perMonth(o));
+  for (const o of orders) if (["PAID", "ACTIVE", "CANCELLED", "EXPIRED"].includes(o.status) && !last.has(o.fromAccount.slug)) last.set(o.fromAccount.slug, perMonth(o));
+  return { recurring, last, known: orders.length > 0 };
 };
 const fetchOrders = (): Promise<Order[]> =>
   fetch("https://api.opencollective.com/graphql/v2", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: ORDERS_QUERY }) })
     .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
     .then((res: { data: { account: { orders: { nodes: Order[] } } } }) => res.data.account.orders.nodes);
 
-// Members with their boat from what they give per month (the last contribution's amount if
-// the contributions can't be read).
-const withMonthly = (members: Member[], monthly: Map<string, number>) =>
-  members.map((m) => {
-    const amount = monthly.get(m.profile.split("/").pop()!);
-    return amount === undefined ? m : { ...m, amount, boat: boatFor(amount) };
+// Members from the contributions: on the surface only with an active monthly/yearly one (its
+// amount per month sets the boat); everyone else below. Left as the member list says if the
+// contributions can't be read.
+const withContributions = (members: Member[], orders: Order[]) => {
+  const c = contributions(orders);
+  if (!c.known) return members;
+  return members.map((m) => {
+    const slug = m.profile.split("/").pop()!;
+    const monthly = c.recurring.get(slug);
+    if (monthly !== undefined) return { ...m, active: true, amount: monthly, boat: boatFor(monthly) };
+    const amount = c.last.get(slug) ?? m.amount;
+    return { ...m, active: false, amount, boat: boatFor(amount) };
   });
+};
 
 // Starts from the bundled snapshot and swaps in the live list once it arrives. `refresh`
 // fetches it again (after someone joins), past any cache.
 export const useMembers = () => {
-  const [members, setMembers] = useState(() => (PREVIEW ? [] : toMembers(snapshot as Raw[])));
+  const [members, setMembers] = useState(() => (PREVIEW ? [] : withContributions(toMembers(snapshot as Raw[]), ordersSnapshot as Order[])));
   const refresh = useCallback(() => {
     const list = fetch(`${MEMBERS_URL}?t=${Date.now()}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status)));
     Promise.all([list, fetchOrders().catch(() => [] as Order[])])
-      .then(([raw, orders]: [Raw[], Order[]]) => setMembers(withMonthly(toMembers(raw), monthlyAmounts(orders))))
+      .then(([raw, orders]: [Raw[], Order[]]) => setMembers(withContributions(toMembers(raw), orders)))
       .catch(() => {});
   }, []);
   useEffect(refresh, [refresh]);

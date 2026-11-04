@@ -3,6 +3,8 @@ import { LAST_BEAM, Lighthouse, lighthouseFoot, lighthouseHeight, type Lighthous
 import { OutpostBack, TowerDetails } from "./Outpost";
 import { BoatShape, Waterline, boatLength } from "./Boat";
 import { Fleet } from "./Fleet";
+import { Depths } from "./Depths";
+import { SubFleet } from "./Submarine";
 import { Bob, Flutter, Slide } from "./Motion";
 import { BOATS, type BoatKind, type Member } from "../members";
 import boatMeta from "../data/veshell-boat.json";
@@ -12,6 +14,11 @@ import boatMeta from "../data/veshell-boat.json";
 // wide; the camera slides from one to the next.
 export const WATER = 690;
 export const BOTTOM = 1000;
+// Under the sea: the dive's view starts just above the surface view's bottom (the keels of the
+// nearest boats show at its top) and goes one frame height down.
+export const DIVE_TOP = BOTTOM - 70;
+// Submarines below: at most this many (the biggest givers), for a big collective.
+const MAX_SUBS = 45;
 
 // The island: the teaser's lighthouse and church, drawn in the teaser's "house" units around
 // the lighthouse's foot, scaled into the world.
@@ -306,10 +313,17 @@ export const World: React.FC<{
   onPick: (boat: BoatKind) => void;
   // Width of the text column on the right, in world units (kept clear on each page).
   reserveRight: number;
-}> = ({ pageW, pages, members, beamTime, reserveRight, page, onPick }) => {
+  // The frame's height in world units, and whether the camera is under the sea.
+  height: number;
+  dived: boolean;
+}> = ({ pageW, pages, members, beamTime, reserveRight, page, onPick, height, dived }) => {
   const x0 = -pageW;
   const x1 = pageW * (pages + 1);
-  const fleet = useMemo(() => layoutFleet(members, pageW, reserveRight, pages), [members, pageW, reserveRight, pages]);
+  // On the surface, those with an active monthly/yearly contribution; below, everyone else.
+  const surface = useMemo(() => members.filter((m) => m.active), [members]);
+  const below = useMemo(() => members.filter((m) => !m.active).sort((a, b) => b.total - a.total).slice(0, MAX_SUBS), [members]);
+  const fleet = useMemo(() => layoutFleet(surface, pageW, reserveRight, pages), [surface, pageW, reserveRight, pages]);
+  const deep = DIVE_TOP + height;
   const usable = pageW - reserveRight;
   return (
     <g>
@@ -341,6 +355,9 @@ export const World: React.FC<{
         <Jetty x={pageW * 2 + Math.max(60, usable * 0.5 - 300)} architects={ARCHITECTS} />
       </Fleet>
       <SeaFront x0={x0} x1={x1} />
+      {/* Under the sea: the depths, and the submarines */}
+      <Depths x0={x0} x1={x1} top={BOTTOM + 2} bottom={deep} rock={{ x0: x0, x1: islandRight(pageW) * 0.55 }} />
+      <SubFleet members={below} seaW={pageW * pages} top={BOTTOM + 110} bottom={deep - 230} visible={dived} page={page} pageW={pageW} />
     </g>
   );
 };
