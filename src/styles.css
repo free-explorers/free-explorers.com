@@ -1247,3 +1247,30 @@ a:focus-visible {
 .join-preview-under svg {
   width: min(460px, 82vw);
 }
+
+/* The navigation: a zero-width anchor on the edge between the pages; each half sized by its own
+   content, docked to it (home's half ends at the edge, the other's starts there). */
+.dock {
+  display: block;
+  width: 0;
+  height: auto;
+}
+.dock .dock-half {
+  position: absolute;
+  top: 0;
+  width: max-content;
+  max-width: 320px;
+  max-height: var(--rail-max, none);
+}
+.dock .dock-home {
+  right: 0;
+}
+.dock .dock-side {
+  left: 0;
+}
+@media (max-width: 759px) {
+  .dock .dock-half {
+    width: var(--half);
+    max-width: none;
+  }
+}

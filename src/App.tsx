@@ -213,24 +213,38 @@ export const App: React.FC = () => {
   }, [frame.w, frame.h, frame.narrow]);
   // The interface's side margin, and the width of each half of the docked container.
   const edge = frame.narrow ? 16 : 48;
-  // On wide screens the navigation is a vertical rail docked to the screen edge (each half
-  // RAIL_W wide), the cards floating beside it; on phones a row across the top.
-  const RAIL_W = 190;
+  // On wide screens the navigation is a vertical rail docked to the screen edge (each half as
+  // big as its content), the cards floating beside it; on phones a row across the top.
   const GAP = 18;
-  const halfW = frame.narrow ? frame.w - 16 : RAIL_W;
+  const halfW = frame.w - 16;
   const homeCardW = frame.narrow ? frame.w - edge * 2 : Math.min(400, frame.w * 0.3);
   // The navigation's top (under the titles), its height, and the cards' top under it.
   const navRef = useRef<HTMLElement>(null);
-  const [navH, setNavH] = useState(54);
+  const homeNav = useRef<HTMLDivElement>(null);
+  const sideNav = useRef<HTMLDivElement>(null);
+  const [navSize, setNavSize] = useState({ home: { w: 190, h: 54 }, side: { w: 190, h: 54 } });
   useLayoutEffect(() => {
-    if (navRef.current) setNavH(navRef.current.offsetHeight);
-  });
+    const els = [homeNav.current, sideNav.current];
+    if (!els[0] || !els[1]) return;
+    const measure = () =>
+      setNavSize({
+        home: { w: homeNav.current!.offsetWidth, h: homeNav.current!.offsetHeight },
+        side: { w: sideNav.current!.offsetWidth, h: sideNav.current!.offsetHeight },
+      });
+    const ro = new ResizeObserver(measure);
+    els.forEach((el) => ro.observe(el!));
+    return () => ro.disconnect();
+  }, []);
+  // Each half of the navigation is sized by its own content (on phones, full width).
+  const homeRail = frame.narrow ? 0 : navSize.home.w;
+  const sideRail = frame.narrow ? 0 : navSize.side.w;
+  const navH = Math.max(navSize.home.h, navSize.side.h);
   // The content column on the page to the right.
   const contentW = frame.narrow ? frame.w - edge * 2 : Math.min(620, frame.w * 0.42);
   // Veshell's showcase: most of the page beside the rail, leaving room for the house-boat on
   // its right.
-  const showcaseW = frame.narrow ? contentW : Math.min(900, (frame.w - RAIL_W - GAP - edge) * 0.62);
-  const reserveLeft = frame.narrow ? 0 : (RAIL_W + GAP + (side === "veshell" ? showcaseW : contentW) + GAP) / frame.unit;
+  const showcaseW = frame.narrow ? contentW : Math.min(900, (frame.w - sideRail - GAP - edge) * 0.62);
+  const reserveLeft = frame.narrow ? 0 : (sideRail + GAP + (side === "veshell" ? showcaseW : contentW) + GAP) / frame.unit;
   // The content: as long as it is; on its page the whole site scrolls (the browser's own
   // scrolling), the camera going down under the sea as you read. Scrolling to a section, and
   // the section being read.
@@ -279,7 +293,7 @@ export const App: React.FC = () => {
     const y = (beamY(cx / frame.unit, frame.pageW) - (BOTTOM - frame.height)) * frame.unit;
     return Math.max(0, y - titleBox.h / 2 - COLUMN_TOP);
   })();
-  const reserveRight = frame.narrow ? 0 : (RAIL_W + GAP + homeCardW + GAP) / frame.unit;
+  const reserveRight = frame.narrow ? 0 : (homeRail + GAP + homeCardW + GAP) / frame.unit;
   const dockTop = COLUMN_TOP + titleTop + titleBox.header + (frame.narrow ? 14 : 28);
   const cardTop = frame.narrow ? dockTop + navH + 10 : dockTop;
   const active = members.filter((m) => m.active).length;
@@ -417,7 +431,7 @@ export const App: React.FC = () => {
         {/* The Explorers' card, under the navigation on the right */}
         <section
           className="card card-home"
-          style={{ top: cardTop, right: frame.narrow ? frame.w + edge : frame.w + RAIL_W + GAP, width: homeCardW }}
+          style={{ top: cardTop, right: frame.narrow ? frame.w + edge : frame.w + homeRail + GAP, width: homeCardW }}
           inert={index !== 0}
         >
           <p>
@@ -439,7 +453,7 @@ export const App: React.FC = () => {
           key={side}
           className={`card card-content${side === "veshell" ? " card-showcase" : ""}`}
           ref={contentRef}
-          style={{ top: cardTop, left: frame.narrow ? frame.w + edge : frame.w + RAIL_W + GAP, width: side === "veshell" ? showcaseW : contentW }}
+          style={{ top: cardTop, left: frame.narrow ? frame.w + edge : frame.w + sideRail + GAP, width: side === "veshell" ? showcaseW : contentW }}
           inert={index !== 1}
           tabIndex={index === 1 ? 0 : -1}
           onClick={(e) => {
@@ -469,10 +483,10 @@ export const App: React.FC = () => {
           <nav
             ref={navRef}
             className="dock"
-            style={{ left: frame.w - halfW, width: halfW * 2, top: railTop, ...(frame.narrow ? {} : { height: `calc(100% - ${railTop + 84}px)` }) }}
+            style={{ left: frame.w, top: railTop, ...(frame.narrow ? { "--half": `${halfW}px` } : { "--rail-max": `calc(100vh - ${railTop + 84}px)` }) } as React.CSSProperties}
             aria-label="Pages"
           >
-            <div className="dock-half dock-home" inert={index !== 0}>
+            <div ref={homeNav} className="dock-half dock-home" inert={index !== 0}>
               {PAGES.filter((p) => p.id !== "explorers").map((p) => (
                 <a key={p.id} href={`#/${p.id}`}>
                   {p.label}
@@ -482,7 +496,7 @@ export const App: React.FC = () => {
                 </a>
               ))}
             </div>
-            <div className="dock-half dock-side" inert={index !== 1}>
+            <div ref={sideNav} className="dock-half dock-side" inert={index !== 1}>
               <a href="#/explorers">
                 <span className="menu-arrow" aria-hidden="true">
                   ←
