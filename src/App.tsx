@@ -17,6 +17,11 @@ const PAGES: { id: PageId; label: string }[] = [
   { id: "veshell", label: "Veshell" },
   { id: "architects", label: "Architects" },
 ];
+// The pages to the right of the Explorers: their title, shown like the Free Explorers' one.
+const SIDE_PAGES: Record<"veshell" | "architects", { title: string; tagline: string }> = {
+  veshell: { title: "Veshell", tagline: "Stop managing windows. Start exploring." },
+  architects: { title: "Architects", tagline: "The people building the technologies of tomorrow" },
+};
 const LINKS = [
   { label: "Open Collective", href: COLLECTIVE },
   { label: "GitHub", href: "https://github.com/free-explorers" },
@@ -194,20 +199,23 @@ export const App: React.FC = () => {
   // The title sits in the middle of the lighthouse's beam: its centre on the beam's centre
   // line (measured once the font is in; phones keep it at the top).
   const wordmark = useRef<HTMLAnchorElement>(null);
-  const [titleBox, setTitleBox] = useState({ w: 0, h: 0, right: 0 });
+  const homeHeader = useRef<HTMLElement>(null);
+  const [titleBox, setTitleBox] = useState({ w: 0, h: 0, header: 0 });
   useLayoutEffect(() => {
     const measure = () => {
       const el = wordmark.current;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      setTitleBox({ w: r.width, h: r.height, right: window.innerWidth - r.right });
+      if (!el || !homeHeader.current) return;
+      setTitleBox({ w: el.offsetWidth, h: el.offsetHeight, header: homeHeader.current.offsetHeight });
     };
     measure();
     document.fonts?.ready.then(measure);
   }, [frame.w, frame.h, frame.narrow]);
+  // The interface's side margin, and the width of each half of the docked container.
+  const edge = frame.narrow ? 16 : 48;
+  const halfW = frame.narrow ? frame.w - 16 : columnPx;
   const titleTop = (() => {
     if (frame.narrow || !titleBox.w) return 0;
-    const cx = frame.w - titleBox.right - titleBox.w / 2;
+    const cx = frame.w - edge - titleBox.w / 2;
     const y = (beamY(cx / frame.unit, frame.pageW) - (BOTTOM - frame.height)) * frame.unit;
     return Math.max(0, y - titleBox.h / 2 - COLUMN_TOP);
   })();
@@ -291,10 +299,10 @@ export const App: React.FC = () => {
       <button
         type="button"
         className={`dive${dived ? " dive-under" : ""}`}
-        hidden={page !== "explorers"}
+        inert={index !== 0}
         onClick={() => setDived((d) => !d)}
         aria-label={dived ? `Depth ${depth} metres. Surface` : "Dive under the sea"}
-        style={{ transitionDuration: reduced ? "0s" : `${SLIDE_MS}ms` }}
+        style={{ transform: `translateX(calc(-50% - ${index * frame.w}px))`, transitionDuration: reduced ? "0s" : `${SLIDE_MS}ms` }}
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d={dived ? "M12 19V5M6 11l6-6 6 6" : "M12 5v14M6 13l6 6 6-6"} />
@@ -310,42 +318,47 @@ export const App: React.FC = () => {
         {dived && <span className="dive-surface">Surface</span>}
       </button>
 
-      {/* The column scrolls up with the scene as the camera dives (its footer stays put) */}
-      <aside
-        className="column"
-        style={{ ...(frame.narrow ? {} : { width: columnPx }), transform: `translateY(${-diveY}px)`, transition: slide }}
+      {/* The interface, attached to the pages: it slides with the view and scrolls up with the
+          dive. The home page's title on the right; the page to the right's title on its left;
+          between them, on the edge between the two pages, the docked container split in two:
+          its left half (home's menu and text) docked to the right edge on the home page, its
+          right half (the way back and the page's text) docked to the left edge on the other. */}
+      <div
+        className="ui-track"
+        style={{ width: frame.w * SLOTS, transform: `translate(${-index * frame.w}px, ${-diveY}px)`, transition: slide }}
         inert={dived}
         aria-hidden={dived}
       >
-        {/* The title belongs to the first page: it slides away with it */}
-        <header className="title" style={{ marginTop: titleTop, transform: `translateX(${-index * frame.w}px)`, transition: slide }}>
+        <header ref={homeHeader} className="title title-home" style={{ top: COLUMN_TOP + titleTop, right: frame.w + edge }} inert={index !== 0}>
           <a ref={wordmark} href="#/explorers" className="wordmark">
             Free Explorers
           </a>
           <p className="tagline">Funding the open-source projects of tomorrow</p>
         </header>
-        {/* Home: the pages to go to. On a page to the right: only the way back. */}
-        <nav className="menu" aria-label="Pages">
-          {page === "explorers" ? (
-            PAGES.filter((p) => p.id !== "explorers").map((p) => (
-              <a key={p.id} href={`#/${p.id}`}>
-                {p.label}
-                <span className="menu-arrow" aria-hidden="true">
-                  →
-                </span>
-              </a>
-            ))
-          ) : (
-            <a href="#/explorers" className="menu-back">
-              <span className="menu-arrow" aria-hidden="true">
-                ←
-              </span>
-              The Explorers
-            </a>
-          )}
-        </nav>
-        <div className="panels">
-          <Panel on={page === "explorers"}>
+        <header className="title title-side" style={{ top: COLUMN_TOP + titleTop, left: frame.w + edge }} inert={index !== 1}>
+          <span className="wordmark">{SIDE_PAGES[side].title}</span>
+          <p className="tagline">{SIDE_PAGES[side].tagline}</p>
+        </header>
+        <div
+          className="dock"
+          style={{
+            left: frame.w - halfW,
+            width: halfW * 2,
+            top: COLUMN_TOP + titleTop + titleBox.header + (frame.narrow ? 14 : 28),
+            maxHeight: `calc(100% - ${COLUMN_TOP + titleTop + titleBox.header + (frame.narrow ? 14 : 28) + 64}px)`,
+          }}
+        >
+          <section className="dock-half dock-home" inert={index !== 0}>
+            <nav className="menu" aria-label="Pages">
+              {PAGES.filter((p) => p.id !== "explorers").map((p) => (
+                <a key={p.id} href={`#/${p.id}`}>
+                  {p.label}
+                  <span className="menu-arrow" aria-hidden="true">
+                    →
+                  </span>
+                </a>
+              ))}
+            </nav>
             <p>
               The Free Explorers are an <a href={COLLECTIVE}>Open Collective</a> funding and building open-source projects. Every boat on this sea is an Explorer
               backing the people who build them: the Architects.
@@ -359,43 +372,58 @@ export const App: React.FC = () => {
               </button>
             </div>
             <BoatLegend members={members} onPick={setJoin} />
-          </Panel>
-          <Panel on={page === "veshell"}>
-            <h2>Veshell</h2>
-            <p className="lead">Stop managing windows. Start exploring.</p>
-            <p>
-              Veshell is a Wayland compositor with a workflow built on our natural sense of space, to navigate and organise your digital environment. Each
-              room of the boat is a workspace, each app has its place.
-            </p>
-            <div className="actions">
-              <a className="cta" href="https://github.com/free-explorers/veshell" target="_blank" rel="noreferrer">
-                Get Veshell
+          </section>
+          <section className="dock-half dock-side" inert={index !== 1}>
+            <nav className="menu" aria-label="Pages">
+              <a href="#/explorers" className="menu-back">
+                <span className="menu-arrow" aria-hidden="true">
+                  ←
+                </span>
+                The Explorers
               </a>
-              <a className="cta cta-ghost" href={`${COLLECTIVE}/projects/veshell`} target="_blank" rel="noreferrer">
-                Fund Veshell
-              </a>
-            </div>
-          </Panel>
-          <Panel on={page === "architects"}>
-            <h2>Architects</h2>
-            <p>
-              Architects dedicate their time to building the technologies of tomorrow. The collective funds them, so projects are delivered with care and
-              stay alive for the long run.
-            </p>
-            <p>
-              <a href="https://github.com/PapyElGringo">PapyElGringo</a> (Adrien Peslerbe) is a front-end developer and UX architect, leading the Veshell
-              project to change how we interact with our digital environment.
-            </p>
-          </Panel>
+            </nav>
+            {side === "veshell" ? (
+              <>
+                <p>
+                  Veshell is a Wayland compositor with a workflow built on our natural sense of space, to navigate and organise your digital environment.
+                  Each room of the boat is a workspace, each app has its place.
+                </p>
+                <div className="actions">
+                  <a className="cta" href="https://github.com/free-explorers/veshell" target="_blank" rel="noreferrer">
+                    Get Veshell
+                  </a>
+                  <a className="cta cta-ghost" href={`${COLLECTIVE}/projects/veshell`} target="_blank" rel="noreferrer">
+                    Fund Veshell
+                  </a>
+                </div>
+              </>
+            ) : (
+              <>
+                <p>
+                  Architects dedicate their time to building the technologies of tomorrow. The collective funds them, so projects are delivered with care and
+                  stay alive for the long run.
+                </p>
+                <p>
+                  <a href="https://github.com/PapyElGringo">PapyElGringo</a> (Adrien Peslerbe) is a front-end developer and UX architect, leading the Veshell
+                  project to change how we interact with our digital environment.
+                </p>
+              </>
+            )}
+          </section>
         </div>
-        <footer className="links" style={{ transform: `translateY(${diveY}px)`, transition: slide }}>
-          {LINKS.map((l) => (
-            <a key={l.href} href={l.href} target="_blank" rel="noreferrer">
-              {l.label}
-            </a>
-          ))}
-        </footer>
-      </aside>
+      </div>
+      {/* The footer links, one per page and attached to it (they stay put when diving) */}
+      <div className="footer-track" style={{ width: frame.w * SLOTS, transform: `translateX(${-index * frame.w}px)`, transition: slide }}>
+        {[0, 1].map((slot) => (
+          <footer key={slot} className="links" style={slot === 0 ? { right: frame.w + edge } : { left: frame.w + edge }} inert={index !== slot}>
+            {LINKS.map((l) => (
+              <a key={l.href} href={l.href} target="_blank" rel="noreferrer">
+                {l.label}
+              </a>
+            ))}
+          </footer>
+        ))}
+      </div>
       <JoinFleet
         open={join}
         onJoined={refreshFleet}
@@ -407,12 +435,6 @@ export const App: React.FC = () => {
     </div>
   );
 };
-
-const Panel: React.FC<{ on: boolean; children: React.ReactNode }> = ({ on, children }) => (
-  <section className={`panel${on ? " panel-on" : ""}`} aria-hidden={!on} inert={!on}>
-    {children}
-  </section>
-);
 
 // The boats explorers sail, from the galleon down, with their amounts and how many sail each
 // now; each one opens the join panel on its amounts.

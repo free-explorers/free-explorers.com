@@ -353,9 +353,9 @@ export const World: React.FC<{
         </Slide>
         {/* The page to the right: Veshell's house-boat, or the Architects' jetty */}
         {side === "veshell" ? (
-          <VeshellBoat cx={pageW + Math.min(Math.max(usable * 0.5, 420), pageW / 2)} maxWidth={Math.min(usable, pageW) * 0.92} />
+          <VeshellBoat cx={pageW + reserveRight + usable * 0.5} maxWidth={Math.min(usable, pageW) * 0.92} />
         ) : (
-          <Jetty x={pageW + Math.max(60, usable * 0.5 - 300)} architects={ARCHITECTS} />
+          <Jetty x={pageW + reserveRight + Math.max(60, usable * 0.5 - 300)} architects={ARCHITECTS} />
         )}
       </Fleet>
       <SeaFront x0={x0} x1={x1} />
