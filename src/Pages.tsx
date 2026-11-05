@@ -101,6 +101,10 @@ export const VeshellContent: React.FC = () => (
         We already know how to find our way: we remember where things are in a space, and we build a mental map of it. Veshell is made for that sense of
         direction. Everything is <strong>predictable</strong>, <strong>spatial</strong> and <strong>navigable</strong>.
       </p>
+      <p>
+        Hence the name: <strong>Veshell</strong> is the contraction of <em>vessel</em> and <em>shell</em>. The shell you use your computer through, and the
+        vessel that carries you across your digital world.
+      </p>
     </Block>
 
     <Block id="map" title="A map, not a desk">
