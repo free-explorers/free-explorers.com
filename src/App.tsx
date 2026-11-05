@@ -230,29 +230,48 @@ export const App: React.FC = () => {
   const reserveLeft = frame.narrow ? 0 : (RAIL_W + GAP + contentW + GAP) / frame.unit;
   // Veshell's showcase: as wide as the page beside the rail.
   const showcaseW = frame.narrow ? contentW : Math.min(1100, frame.w - RAIL_W - GAP - edge);
-  // The content column: scrolling to a section, and the section being read.
+  // The content: as long as it is; on its page the whole site scrolls (the browser's own
+  // scrolling), the camera going down under the sea as you read. Scrolling to a section, and
+  // the section being read.
   const contentRef = useRef<HTMLElement>(null);
-  const [activeSection, setActiveSection] = useState(SECTIONS[side][0].id);
-  useEffect(() => {
-    setActiveSection(SECTIONS[side][0].id);
-    contentRef.current?.scrollTo({ top: 0 });
+  const [contentH, setContentH] = useState(0);
+  useLayoutEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setContentH(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [side]);
-  const scrollToSection = (id: string) => {
-    const box = contentRef.current;
-    const el = box?.querySelector<HTMLElement>(`#section-${id}`);
-    if (!box || !el) return;
-    box.scrollTo({ top: el.offsetTop - 12, behavior: reduced ? "auto" : "smooth" });
-  };
+  const [scrollY, setScrollY] = useState(0);
+  const [activeSection, setActiveSection] = useState(SECTIONS[side][0].id);
+  useEffect(() => setActiveSection(SECTIONS[side][0].id), [side]);
   const followReading = () => {
     const box = contentRef.current;
     if (!box) return;
     const sections = [...box.querySelectorAll<HTMLElement>("[data-section]")];
     // The last section whose top has passed a third of the way down; the last one at the end.
-    const atEnd = box.scrollTop + box.clientHeight >= box.scrollHeight - 4;
-    const line = box.scrollTop + box.clientHeight / 3;
-    const current = atEnd ? sections[sections.length - 1] : sections.filter((s) => s.offsetTop <= line).pop() ?? sections[0];
+    const atEnd = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 4;
+    const line = window.innerHeight / 3;
+    const current = atEnd ? sections[sections.length - 1] : sections.filter((s) => s.getBoundingClientRect().top <= line).pop() ?? sections[0];
     if (current?.dataset.section) setActiveSection(current.dataset.section);
   };
+  useEffect(() => {
+    const onScroll = () => {
+      setScrollY(window.scrollY);
+      followReading();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  });
+  const scrollToSection = (id: string) => {
+    const el = contentRef.current?.querySelector<HTMLElement>(`#section-${id}`);
+    if (!el) return;
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 24, behavior: reduced ? "auto" : "smooth" });
+  };
+  // Back home: up to the surface while sliding.
+  useEffect(() => {
+    if (page === "explorers" && window.scrollY > 0) window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+  }, [page, reduced]);
   const titleTop = (() => {
     if (frame.narrow || !titleBox.w) return 0;
     const cx = frame.w - edge - titleBox.w / 2;
@@ -264,9 +283,19 @@ export const App: React.FC = () => {
   const cardTop = frame.narrow ? dockTop + navH + 10 : dockTop;
   const active = members.filter((m) => m.active).length;
   const below = members.length - active;
+  // The site's height: the screen at home, the content's length on the page to the right; the
+  // scene (sky, sea, depths) as tall as that, and at least the dive's depth.
+  const docH = index === 1 ? Math.max(frame.h, Math.ceil(cardTop + contentH + 96)) : frame.h;
+  const sceneH = Math.max((frame.height * 2 - (BOTTOM - DIVE_TOP)) * frame.unit, docH);
+  const seabed = BOTTOM - frame.height + sceneH / frame.unit;
+  useEffect(() => {
+    document.documentElement.classList.toggle("scrolling", index === 1);
+  }, [index]);
+  // The navigation rail stays on screen: it rises to the top as the title scrolls away.
+  const railTop = Math.max(frame.narrow ? 8 : 16, dockTop - scrollY);
 
   return (
-    <div className="site">
+    <div className="site" style={{ height: docH }}>
       <svg className="sky" viewBox={`0 ${BOTTOM - frame.height} ${frame.pageW} ${frame.height}`} preserveAspectRatio="xMidYMax slice" aria-hidden="true">
         <defs>
           <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
@@ -285,14 +314,14 @@ export const App: React.FC = () => {
         className="scene-track"
         style={{
           width: frame.w * SLOTS,
-          height: (frame.height * 2 - (BOTTOM - DIVE_TOP)) * frame.unit,
+          height: sceneH,
           transform: `translate(${-index * frame.w}px, ${-diveY}px)`,
           transition: slide,
         }}
       >
         <svg
           className="scene"
-          viewBox={`0 ${BOTTOM - frame.height} ${frame.pageW * SLOTS} ${frame.height * 2 - (BOTTOM - DIVE_TOP)}`}
+          viewBox={`0 ${BOTTOM - frame.height} ${frame.pageW * SLOTS} ${sceneH / frame.unit}`}
           preserveAspectRatio="xMinYMin slice"
           role="img"
           aria-label="The Free Explorers lighthouse church by the sea, with a boat for every member of the collective"
@@ -308,6 +337,7 @@ export const App: React.FC = () => {
             page={index}
             onPick={setJoin}
             height={frame.height}
+            seabed={seabed}
             dived={dived}
           />
         </svg>
@@ -317,6 +347,7 @@ export const App: React.FC = () => {
       <section
         className="depth-card panel"
         style={{
+          visibility: dived || index === 0 ? undefined : "hidden",
           top: diveDepth + (frame.narrow ? 110 : 140),
           ...(frame.narrow ? {} : { width: columnPx - 48 }),
           transform: `translateY(${-diveY}px)`,
@@ -382,46 +413,6 @@ export const App: React.FC = () => {
           <span className="wordmark">{SIDE_PAGES[side].title}</span>
           <p className="tagline">{SIDE_PAGES[side].tagline}</p>
         </header>
-        {/* Navigation: one container on the edge between the two pages, split there: home's
-            links (docked to the right edge on the home page), the way back (docked to the left
-            edge on the other) */}
-        <nav
-          ref={navRef}
-          className="dock"
-          style={{ left: frame.w - halfW, width: halfW * 2, top: dockTop, ...(frame.narrow ? {} : { height: `calc(100% - ${dockTop + 84}px)` }) }}
-          aria-label="Pages"
-        >
-          <div className="dock-half dock-home" inert={index !== 0}>
-            {PAGES.filter((p) => p.id !== "explorers").map((p) => (
-              <a key={p.id} href={`#/${p.id}`}>
-                {p.label}
-                <span className="menu-arrow" aria-hidden="true">
-                  →
-                </span>
-              </a>
-            ))}
-          </div>
-          <div className="dock-half dock-side" inert={index !== 1}>
-            <a href="#/explorers">
-              <span className="menu-arrow" aria-hidden="true">
-                ←
-              </span>
-              The Explorers
-            </a>
-            {/* The page's sections: scrolls the content to one, and follows the reading */}
-            {!frame.narrow && (
-              <ol className="toc">
-                {SECTIONS[side].map((sec) => (
-                  <li key={sec.id}>
-                    <button type="button" aria-current={sec.id === activeSection ? "location" : undefined} onClick={() => scrollToSection(sec.id)}>
-                      {sec.label}
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </div>
-        </nav>
         {/* The Explorers' card, under the navigation on the right */}
         <section
           className="card card-home"
@@ -442,7 +433,7 @@ export const App: React.FC = () => {
           </div>
           <BoatLegend members={members} onPick={setJoin} />
         </section>
-        {/* The page's content, on the left of the page to the right: tall, and scrollable */}
+        {/* The page's content, on the left of the page to the right, as long as it is */}
         <article
           key={side}
           className={`card card-content${side === "veshell" ? " card-showcase" : ""}`}
@@ -450,7 +441,6 @@ export const App: React.FC = () => {
           style={{ top: cardTop, left: frame.narrow ? frame.w + edge : frame.w + RAIL_W + GAP, width: side === "veshell" ? showcaseW : contentW }}
           inert={index !== 1}
           tabIndex={index === 1 ? 0 : -1}
-          onScroll={followReading}
           onClick={(e) => {
             // Links to a section scroll the column (they'd otherwise change the page).
             const a = (e.target as HTMLElement).closest("a");
@@ -463,6 +453,55 @@ export const App: React.FC = () => {
         >
           {side === "veshell" ? <VeshellContent /> : <ArchitectsContent />}
         </article>
+      </div>
+      {/* The navigation rail: slides with the pages and dives with the camera, but stays on
+          screen while the page to the right scrolls */}
+      <div
+        className="rail-track"
+        style={{ width: frame.w * SLOTS, transform: `translate(${-index * frame.w}px, ${-diveY}px)`, transition: slide }}
+        inert={dived}
+        aria-hidden={dived}
+      >
+          {/* Navigation: one container on the edge between the two pages, split there: home's
+              links (docked to the right edge on the home page), the way back (docked to the left
+              edge on the other) */}
+          <nav
+            ref={navRef}
+            className="dock"
+            style={{ left: frame.w - halfW, width: halfW * 2, top: railTop, ...(frame.narrow ? {} : { height: `calc(100% - ${railTop + 84}px)` }) }}
+            aria-label="Pages"
+          >
+            <div className="dock-half dock-home" inert={index !== 0}>
+              {PAGES.filter((p) => p.id !== "explorers").map((p) => (
+                <a key={p.id} href={`#/${p.id}`}>
+                  {p.label}
+                  <span className="menu-arrow" aria-hidden="true">
+                    →
+                  </span>
+                </a>
+              ))}
+            </div>
+            <div className="dock-half dock-side" inert={index !== 1}>
+              <a href="#/explorers">
+                <span className="menu-arrow" aria-hidden="true">
+                  ←
+                </span>
+                The Explorers
+              </a>
+              {/* The page's sections: scrolls the content to one, and follows the reading */}
+              {!frame.narrow && (
+                <ol className="toc">
+                  {SECTIONS[side].map((sec) => (
+                    <li key={sec.id}>
+                      <button type="button" aria-current={sec.id === activeSection ? "location" : undefined} onClick={() => scrollToSection(sec.id)}>
+                        {sec.label}
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </nav>
       </div>
       {/* The footer links, attached to the camera: they stay put when sliding and diving */}
       <footer className="links links-fixed" style={{ right: edge }}>

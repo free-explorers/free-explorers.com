@@ -319,8 +319,10 @@ export const World: React.FC<{
   reserveLeft: number;
   // The frame's height in world units, and whether the camera is under the sea.
   height: number;
+  // The seabed's foot, in world units (deeper when the page to the right's content is long).
+  seabed?: number;
   dived: boolean;
-}> = ({ pageW, pages, members, beamTime, reserveRight, page, onPick, height, dived, side, reserveLeft }) => {
+}> = ({ pageW, pages, members, beamTime, reserveRight, page, onPick, height, dived, side, reserveLeft, seabed }) => {
   const x0 = -pageW;
   const x1 = pageW * (pages + 1);
   // On the surface, those with an active monthly/yearly contribution; below, everyone else.
@@ -359,7 +361,7 @@ export const World: React.FC<{
       </Fleet>
       <SeaFront x0={x0} x1={x1} />
       {/* Under the sea: the depths, and the submarines */}
-      <Depths x0={x0} x1={x1} top={BOTTOM + 2} bottom={deep} rock={{ x0: x0, x1: islandRight(pageW) * 0.55 }} />
+      <Depths x0={x0} x1={x1} top={BOTTOM + 2} bottom={Math.max(deep, seabed ?? deep)} rock={{ x0: x0, x1: islandRight(pageW) * 0.55 }} />
       {/* The depths are under the first page only */}
       <SubFleet members={below} seaW={pageW} top={BOTTOM + 110} bottom={deep - 230} visible={dived} page={page} pageW={pageW} />
     </g>
