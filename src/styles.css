@@ -1213,3 +1213,37 @@ a:focus-visible {
 .rail-track > * {
   pointer-events: auto;
 }
+
+/* One-time gifts: the submarine preview, under the sea, and the amount field. */
+.join-preview-under {
+  background: linear-gradient(#0b5f7c, #042c3a);
+}
+.join-preview-under svg {
+  aspect-ratio: 450 / 175;
+}
+.join-once {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding-bottom: 10px;
+}
+.join-once .join-boat-name {
+  color: #d9a441;
+}
+.join-once-input {
+  width: 5ch;
+  font-size: 34px;
+  font-weight: 800;
+  border-bottom-color: #d9a441;
+}
+.join-once-input[aria-invalid="true"] {
+  border-bottom-color: #e8573f;
+}
+.join-continue:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+.join-preview-under svg {
+  width: min(460px, 82vw);
+}
