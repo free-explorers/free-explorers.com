@@ -4,6 +4,7 @@ import { BOTTOM, DIVE_TOP, World, beamY } from "./scene/World";
 import { BoatShape } from "./scene/Boat";
 import { BOATS, COLLECTIVE, useMembers, type BoatKind, type Member } from "./members";
 import { JoinFleet } from "./JoinFleet";
+import { ArchitectsContent, VeshellContent } from "./Pages";
 
 // The site is one long sea: each page is a stretch of it, and the menu slides the camera
 // along to the page's stretch. The title and the menu stay put on the right.
@@ -213,6 +214,15 @@ export const App: React.FC = () => {
   // The interface's side margin, and the width of each half of the docked container.
   const edge = frame.narrow ? 16 : 48;
   const halfW = frame.narrow ? frame.w - 16 : columnPx;
+  // The navigation's top (under the titles), its height, and the cards' top under it.
+  const navRef = useRef<HTMLElement>(null);
+  const [navH, setNavH] = useState(54);
+  useLayoutEffect(() => {
+    if (navRef.current) setNavH(navRef.current.offsetHeight);
+  });
+  // The content column on the page to the right.
+  const contentW = frame.narrow ? frame.w - edge * 2 : Math.min(620, frame.w * 0.42);
+  const reserveLeft = frame.narrow ? 0 : (contentW + edge) / frame.unit;
   const titleTop = (() => {
     if (frame.narrow || !titleBox.w) return 0;
     const cx = frame.w - edge - titleBox.w / 2;
@@ -220,6 +230,8 @@ export const App: React.FC = () => {
     return Math.max(0, y - titleBox.h / 2 - COLUMN_TOP);
   })();
   const reserveRight = columnPx / frame.unit;
+  const dockTop = COLUMN_TOP + titleTop + titleBox.header + (frame.narrow ? 14 : 28);
+  const cardTop = dockTop + navH + (frame.narrow ? 10 : 16);
   const active = members.filter((m) => m.active).length;
   const below = members.length - active;
 
@@ -262,6 +274,7 @@ export const App: React.FC = () => {
             members={members}
             beamTime={beamTime}
             reserveRight={reserveRight}
+            reserveLeft={reserveLeft}
             page={index}
             onPick={setJoin}
             height={frame.height}
@@ -339,78 +352,55 @@ export const App: React.FC = () => {
           <span className="wordmark">{SIDE_PAGES[side].title}</span>
           <p className="tagline">{SIDE_PAGES[side].tagline}</p>
         </header>
-        <div
-          className="dock"
-          style={{
-            left: frame.w - halfW,
-            width: halfW * 2,
-            top: COLUMN_TOP + titleTop + titleBox.header + (frame.narrow ? 14 : 28),
-            maxHeight: `calc(100% - ${COLUMN_TOP + titleTop + titleBox.header + (frame.narrow ? 14 : 28) + 64}px)`,
-          }}
-        >
-          <section className="dock-half dock-home" inert={index !== 0}>
-            <nav className="menu" aria-label="Pages">
-              {PAGES.filter((p) => p.id !== "explorers").map((p) => (
-                <a key={p.id} href={`#/${p.id}`}>
-                  {p.label}
-                  <span className="menu-arrow" aria-hidden="true">
-                    →
-                  </span>
-                </a>
-              ))}
-            </nav>
-            <p>
-              The Free Explorers are an <a href={COLLECTIVE}>Open Collective</a> funding and building open-source projects. Every boat on this sea is an Explorer
-              backing the people who build them: the Architects.
-            </p>
-            <div className="count-row">
-              <p className="count">
-                <strong>{active}</strong> {active === 1 ? "explorer" : "explorers"} at sea
-              </p>
-              <button type="button" className="cta" onClick={() => setJoin(null)}>
-                Join the fleet
-              </button>
-            </div>
-            <BoatLegend members={members} onPick={setJoin} />
-          </section>
-          <section className="dock-half dock-side" inert={index !== 1}>
-            <nav className="menu" aria-label="Pages">
-              <a href="#/explorers" className="menu-back">
+        {/* Navigation: one container on the edge between the two pages, split there: home's
+            links (docked to the right edge on the home page), the way back (docked to the left
+            edge on the other) */}
+        <nav ref={navRef} className="dock" style={{ left: frame.w - halfW, width: halfW * 2, top: dockTop }} aria-label="Pages">
+          <div className="dock-half dock-home" inert={index !== 0}>
+            {PAGES.filter((p) => p.id !== "explorers").map((p) => (
+              <a key={p.id} href={`#/${p.id}`}>
+                {p.label}
                 <span className="menu-arrow" aria-hidden="true">
-                  ←
+                  →
                 </span>
-                The Explorers
               </a>
-            </nav>
-            {side === "veshell" ? (
-              <>
-                <p>
-                  Veshell is a Wayland compositor with a workflow built on our natural sense of space, to navigate and organise your digital environment.
-                  Each room of the boat is a workspace, each app has its place.
-                </p>
-                <div className="actions">
-                  <a className="cta" href="https://github.com/free-explorers/veshell" target="_blank" rel="noreferrer">
-                    Get Veshell
-                  </a>
-                  <a className="cta cta-ghost" href={`${COLLECTIVE}/projects/veshell`} target="_blank" rel="noreferrer">
-                    Fund Veshell
-                  </a>
-                </div>
-              </>
-            ) : (
-              <>
-                <p>
-                  Architects dedicate their time to building the technologies of tomorrow. The collective funds them, so projects are delivered with care and
-                  stay alive for the long run.
-                </p>
-                <p>
-                  <a href="https://github.com/PapyElGringo">PapyElGringo</a> (Adrien Peslerbe) is a front-end developer and UX architect, leading the Veshell
-                  project to change how we interact with our digital environment.
-                </p>
-              </>
-            )}
-          </section>
-        </div>
+            ))}
+          </div>
+          <div className="dock-half dock-side" inert={index !== 1}>
+            <a href="#/explorers">
+              <span className="menu-arrow" aria-hidden="true">
+                ←
+              </span>
+              The Explorers
+            </a>
+          </div>
+        </nav>
+        {/* The Explorers' card, under the navigation on the right */}
+        <section className="card card-home" style={{ top: cardTop, right: frame.w + edge, width: frame.narrow ? frame.w - edge * 2 : halfW - edge }} inert={index !== 0}>
+          <p>
+            The Free Explorers are an <a href={COLLECTIVE}>Open Collective</a> funding and building open-source projects. Every boat on this sea is an Explorer
+            backing the people who build them: the Architects.
+          </p>
+          <div className="count-row">
+            <p className="count">
+              <strong>{active}</strong> {active === 1 ? "explorer" : "explorers"} at sea
+            </p>
+            <button type="button" className="cta" onClick={() => setJoin(null)}>
+              Join the fleet
+            </button>
+          </div>
+          <BoatLegend members={members} onPick={setJoin} />
+        </section>
+        {/* The page's content, on the left of the page to the right: tall, and scrollable */}
+        <article
+          key={side}
+          className="card card-content"
+          style={{ top: cardTop, left: frame.w + edge, width: contentW }}
+          inert={index !== 1}
+          tabIndex={index === 1 ? 0 : -1}
+        >
+          {side === "veshell" ? <VeshellContent /> : <ArchitectsContent />}
+        </article>
       </div>
       {/* The footer links, attached to the camera: they stay put when sliding and diving */}
       <footer className="links links-fixed" style={{ right: edge }}>

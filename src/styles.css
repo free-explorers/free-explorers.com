@@ -899,3 +899,127 @@ a:focus-visible {
   bottom: calc(32px + env(safe-area-inset-bottom, 0px));
   z-index: 1;
 }
+
+/* The navigation (split at the page edge) and the cards under it. */
+.dock {
+  grid-template-columns: 1fr 1fr;
+}
+.dock .dock-half {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 22px;
+  padding: 12px 26px;
+  overflow: visible;
+}
+.dock-half a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 19px;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--ink);
+}
+.dock-half a:hover {
+  color: #fff;
+}
+.card {
+  position: absolute;
+  padding: 20px 24px;
+  border-radius: 18px;
+  background: rgba(10, 34, 45, 0.6);
+  backdrop-filter: blur(6px);
+}
+.card p {
+  margin: 0 0 14px;
+}
+/* The content column: tall, scrollable on its own. */
+.card-content {
+  bottom: 84px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(217, 164, 65, 0.6) transparent;
+  padding: 24px 28px 28px;
+}
+.card-content:focus-visible {
+  outline: 2px solid var(--gold);
+}
+.card-content .lead {
+  font-size: 19px;
+  color: var(--ink);
+}
+.card-content h3 {
+  margin: 26px 0 8px;
+  font-size: 21px;
+  font-weight: 700;
+}
+.card-content h4 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+.card-content ul {
+  margin: 0 0 14px;
+  padding-left: 20px;
+}
+.card-content li {
+  margin-bottom: 6px;
+}
+.card-content kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 -2px rgba(0, 0, 0, 0.3);
+  font: 600 14px var(--font);
+  text-align: center;
+}
+.card-content code {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  font: 14px ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+.card-content .note {
+  color: var(--muted);
+  font-size: 14px;
+}
+.install {
+  margin: 0 0 16px;
+}
+.install dt {
+  margin-top: 10px;
+  font-weight: 600;
+}
+.install dd {
+  margin: 4px 0 0;
+}
+.architect {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.architect img {
+  flex: none;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--teal);
+}
+@media (max-width: 759px) {
+  .dock .dock-half {
+    padding: 10px 16px;
+  }
+  .dock-half a {
+    font-size: 16px;
+  }
+  .card {
+    padding: 14px 16px;
+  }
+  .card-home .legend {
+    display: none;
+  }
+  .card-content {
+    bottom: auto;
+    max-height: 44vh;
+  }
+}

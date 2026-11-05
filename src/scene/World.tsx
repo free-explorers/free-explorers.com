@@ -315,10 +315,12 @@ export const World: React.FC<{
   side: "veshell" | "architects";
   // Width of the text column on the right, in world units (kept clear on each page).
   reserveRight: number;
+  // Width of the content column on the left of the page to the right, in world units.
+  reserveLeft: number;
   // The frame's height in world units, and whether the camera is under the sea.
   height: number;
   dived: boolean;
-}> = ({ pageW, pages, members, beamTime, reserveRight, page, onPick, height, dived, side }) => {
+}> = ({ pageW, pages, members, beamTime, reserveRight, page, onPick, height, dived, side, reserveLeft }) => {
   const x0 = -pageW;
   const x1 = pageW * (pages + 1);
   // On the surface, those with an active monthly/yearly contribution; below, everyone else.
@@ -353,9 +355,9 @@ export const World: React.FC<{
         </Slide>
         {/* The page to the right: Veshell's house-boat, or the Architects' jetty */}
         {side === "veshell" ? (
-          <VeshellBoat cx={pageW + reserveRight + usable * 0.5} maxWidth={Math.min(usable, pageW) * 0.92} />
+          <VeshellBoat cx={pageW + reserveLeft + (pageW - reserveLeft) * 0.5} maxWidth={(pageW - reserveLeft) * 0.88} />
         ) : (
-          <Jetty x={pageW + reserveRight + Math.max(60, usable * 0.5 - 300)} architects={ARCHITECTS} />
+          <Jetty x={pageW + reserveLeft + Math.max(60, (pageW - reserveLeft) * 0.5 - 300)} architects={ARCHITECTS} />
         )}
       </Fleet>
       <SeaFront x0={x0} x1={x1} />
