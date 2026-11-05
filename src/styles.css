@@ -1294,3 +1294,7 @@ a:focus-visible {
     top: 8px;
   }
 }
+/* 8px above the teaser: with the card's 22px top padding, the same 30px as its sides */
+.teaser {
+  margin-top: 8px;
+}
