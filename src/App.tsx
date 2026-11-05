@@ -227,9 +227,10 @@ export const App: React.FC = () => {
   });
   // The content column on the page to the right.
   const contentW = frame.narrow ? frame.w - edge * 2 : Math.min(620, frame.w * 0.42);
-  const reserveLeft = frame.narrow ? 0 : (RAIL_W + GAP + contentW + GAP) / frame.unit;
-  // Veshell's showcase: as wide as the page beside the rail.
-  const showcaseW = frame.narrow ? contentW : Math.min(1100, frame.w - RAIL_W - GAP - edge);
+  // Veshell's showcase: most of the page beside the rail, leaving room for the house-boat on
+  // its right.
+  const showcaseW = frame.narrow ? contentW : Math.min(900, (frame.w - RAIL_W - GAP - edge) * 0.62);
+  const reserveLeft = frame.narrow ? 0 : (RAIL_W + GAP + (side === "veshell" ? showcaseW : contentW) + GAP) / frame.unit;
   // The content: as long as it is; on its page the whole site scrolls (the browser's own
   // scrolling), the camera going down under the sea as you read. Scrolling to a section, and
   // the section being read.
