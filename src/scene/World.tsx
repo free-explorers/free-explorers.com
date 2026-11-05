@@ -5,7 +5,7 @@ import { BoatShape, Waterline, boatLength } from "./Boat";
 import { Fleet } from "./Fleet";
 import { Depths } from "./Depths";
 import { SubFleet } from "./Submarine";
-import { Bob, Flutter, Slide } from "./Motion";
+import { Bob, Slide } from "./Motion";
 import { BOATS, type BoatKind, type Member } from "../members";
 import boatMeta from "../data/veshell-boat.json";
 
@@ -207,55 +207,6 @@ const VeshellBoat: React.FC<{ cx: number; maxWidth: number }> = ({ cx, maxWidth 
   );
 };
 
-// The Architects' page: a wooden jetty with a lantern, where the architect's flag flies.
-const Jetty: React.FC<{ x: number; architects: { name: string; image: string; url: string }[] }> = ({ x, architects }) => {
-  const deck = WATER - 46;
-  const len = 520;
-  return (
-    <g>
-      {/* Piles */}
-      {Array.from({ length: 6 }, (_, i) => (
-        <rect key={i} x={x + i * (len / 5) - 9} y={deck - 6} width={18} height={BOTTOM - deck} fill="#5a3522" />
-      ))}
-      {/* Deck planks */}
-      <rect x={x - 30} y={deck} width={len + 60} height={22} rx={4} fill="#a9744f" />
-      {Array.from({ length: 14 }, (_, i) => (
-        <rect key={i} x={x - 30 + i * ((len + 60) / 14)} y={deck} width={2} height={22} fill="#8a5b3b" />
-      ))}
-      {/* Lantern post at the end */}
-      <rect x={x + len - 6} y={deck - 210} width={12} height={210} fill="#2f2e36" />
-      <path d={`M ${x + len} ${deck - 200} q 40 -10 50 20`} stroke="#2f2e36" strokeWidth={6} fill="none" />
-      <circle cx={x + len + 50} cy={deck - 158} r={40} fill="url(#bulb-glow)" />
-      <rect x={x + len + 40} y={deck - 176} width={20} height={28} rx={4} fill="#ffd66b" stroke="#2f2e36" strokeWidth={3} />
-      {/* A flagpole per architect, flying their avatar */}
-      {architects.map((a, i) => {
-        const fx = x + 120 + i * 180;
-        const top = deck - 330;
-        return (
-          <a key={a.name} href={a.url} target="_blank" rel="noreferrer" className="boat" aria-label={a.name}>
-            <rect x={fx - 4} y={top} width={8} height={deck - top} fill="#5a3522" />
-            <circle cx={fx} cy={top - 4} r={7} fill="#f9c46b" />
-            <Flutter x={fx} y={top + 10}>
-              <path d={`M ${fx + 4} ${top + 8} L ${fx + 150} ${top + 14} L ${fx + 146} ${top + 112} L ${fx + 4} ${top + 106} Z`} fill="#f4f1ea" />
-              <clipPath id={`arch-${i}`}>
-                <circle cx={fx + 76} cy={top + 60} r={38} />
-              </clipPath>
-              <circle cx={fx + 76} cy={top + 60} r={42} fill="#006888" />
-              <image href={a.image} x={fx + 38} y={top + 22} width={76} height={76} clipPath={`url(#arch-${i})`} />
-            </Flutter>
-            <g className="boat-label" transform={`translate(${fx + 76} ${top - 26})`}>
-              <text textAnchor="middle" className="boat-name">
-                {a.name}
-              </text>
-            </g>
-          </a>
-        );
-      })}
-    </g>
-  );
-};
-
-export const ARCHITECTS = [{ name: "PapyElGringo", image: "https://github.com/PapyElGringo.png?size=160", url: "https://github.com/PapyElGringo" }];
 
 // While no enterprise sponsor sails one, a galleon waits moored at the lighthouse's quay,
 // sails furled, for rent: pointing at it explains, clicking it opens the join panel on the
@@ -356,10 +307,8 @@ export const World: React.FC<{
           <path d={swell(ISLAND_WATER + 4, 3, x0 - WAVE_LEN, islandRight(pageW) + 80, 40)} fill="url(#sea)" />
         </Slide>
         {/* The page to the right: Veshell's house-boat, or the Architects' jetty */}
-        {/* Veshell's house-boat on the right of its showcase, the Architects' jetty on the right of
-            their content */}
+        {/* Veshell's house-boat on the right of its showcase (the Architects' page: the open sea) */}
         {side === "veshell" && <VeshellBoat cx={pageW + reserveLeft + (pageW - reserveLeft) * 0.5} maxWidth={(pageW - reserveLeft) * 0.9} />}
-        {side === "architects" && <Jetty x={pageW + reserveLeft + Math.max(60, (pageW - reserveLeft) * 0.5 - 300)} architects={ARCHITECTS} />}
       </Fleet>
       <SeaFront x0={x0} x1={x1} />
       {/* Under the sea: the depths, and the submarines */}
