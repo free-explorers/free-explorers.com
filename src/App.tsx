@@ -213,7 +213,12 @@ export const App: React.FC = () => {
   }, [frame.w, frame.h, frame.narrow]);
   // The interface's side margin, and the width of each half of the docked container.
   const edge = frame.narrow ? 16 : 48;
-  const halfW = frame.narrow ? frame.w - 16 : columnPx;
+  // On wide screens the navigation is a vertical rail docked to the screen edge (each half
+  // RAIL_W wide), the cards floating beside it; on phones a row across the top.
+  const RAIL_W = 190;
+  const GAP = 18;
+  const halfW = frame.narrow ? frame.w - 16 : RAIL_W;
+  const homeCardW = frame.narrow ? frame.w - edge * 2 : Math.min(400, frame.w * 0.3);
   // The navigation's top (under the titles), its height, and the cards' top under it.
   const navRef = useRef<HTMLElement>(null);
   const [navH, setNavH] = useState(54);
@@ -222,16 +227,16 @@ export const App: React.FC = () => {
   });
   // The content column on the page to the right.
   const contentW = frame.narrow ? frame.w - edge * 2 : Math.min(620, frame.w * 0.42);
-  const reserveLeft = frame.narrow ? 0 : (contentW + edge) / frame.unit;
+  const reserveLeft = frame.narrow ? 0 : (RAIL_W + GAP + contentW + GAP) / frame.unit;
   const titleTop = (() => {
     if (frame.narrow || !titleBox.w) return 0;
     const cx = frame.w - edge - titleBox.w / 2;
     const y = (beamY(cx / frame.unit, frame.pageW) - (BOTTOM - frame.height)) * frame.unit;
     return Math.max(0, y - titleBox.h / 2 - COLUMN_TOP);
   })();
-  const reserveRight = columnPx / frame.unit;
+  const reserveRight = frame.narrow ? 0 : (RAIL_W + GAP + homeCardW + GAP) / frame.unit;
   const dockTop = COLUMN_TOP + titleTop + titleBox.header + (frame.narrow ? 14 : 28);
-  const cardTop = dockTop + navH + (frame.narrow ? 10 : 16);
+  const cardTop = frame.narrow ? dockTop + navH + 10 : dockTop;
   const active = members.filter((m) => m.active).length;
   const below = members.length - active;
 
@@ -376,7 +381,11 @@ export const App: React.FC = () => {
           </div>
         </nav>
         {/* The Explorers' card, under the navigation on the right */}
-        <section className="card card-home" style={{ top: cardTop, right: frame.w + edge, width: frame.narrow ? frame.w - edge * 2 : halfW - edge }} inert={index !== 0}>
+        <section
+          className="card card-home"
+          style={{ top: cardTop, right: frame.narrow ? frame.w + edge : frame.w + RAIL_W + GAP, width: homeCardW }}
+          inert={index !== 0}
+        >
           <p>
             The Free Explorers are an <a href={COLLECTIVE}>Open Collective</a> funding and building open-source projects. Every boat on this sea is an Explorer
             backing the people who build them: the Architects.
@@ -395,7 +404,7 @@ export const App: React.FC = () => {
         <article
           key={side}
           className="card card-content"
-          style={{ top: cardTop, left: frame.w + edge, width: contentW }}
+          style={{ top: cardTop, left: frame.narrow ? frame.w + edge : frame.w + RAIL_W + GAP, width: contentW }}
           inert={index !== 1}
           tabIndex={index === 1 ? 0 : -1}
         >

@@ -1023,3 +1023,16 @@ a:focus-visible {
     max-height: 44vh;
   }
 }
+
+/* Wide screens: the navigation as a vertical rail, its links stacked. */
+@media (min-width: 760px) {
+  .dock .dock-half {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 10px;
+    padding: 18px 20px;
+  }
+  .dock-home {
+    align-items: flex-start;
+  }
+}
