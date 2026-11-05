@@ -204,20 +204,34 @@ type Sim = { x: number; y: number; dir: 1 | -1; speed: number; depth: number; ne
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const SPEED = 12;
 
-export const SubFleet: React.FC<{ members: Member[]; seaW: number; top: number; bottom: number; visible: boolean; page: number; pageW: number }> = memo(
-  ({ members, seaW, top, bottom, visible, page, pageW }) => {
+// `bottom` is how deep they go under the first page (the dive's view); past it (x > pageW), the
+// sea under the page to the right goes down to `deepBottom`.
+export const SubFleet: React.FC<{
+  members: Member[];
+  seaW: number;
+  top: number;
+  bottom: number;
+  deepBottom?: number;
+  visible: boolean;
+  page: number;
+  pageW: number;
+}> = memo(
+  ({ members, seaW, top, bottom, deepBottom = bottom, visible, page, pageW }) => {
     const sims = useRef(new Map<string, Sim>());
     const parts = useRef(new Map<string, SubParts>());
-    const env = useRef({ seaW, top, bottom, visible, page, pageW });
-    env.current = { seaW, top, bottom, visible, page, pageW };
+    const env = useRef({ seaW, top, bottom, deepBottom, visible, page, pageW });
+    env.current = { seaW, top, bottom, deepBottom, visible, page, pageW };
+    // How deep a submarine may go where it is.
+    const floor = (x: number) => (x > env.current.pageW ? env.current.deepBottom : env.current.bottom);
     const [, force] = useState(0);
 
     useEffect(() => {
       const next = new Map<string, Sim>();
       for (const m of members) {
         const prev = sims.current.get(m.id);
-        const depth = rand(top, bottom);
-        next.set(m.id, prev ? { ...prev, k: subScale(m.total) } : { x: rand(0, seaW), y: depth, dir: Math.random() < 0.5 ? 1 : -1, speed: rand(0.5, 1.2), depth, nextChange: 0, k: subScale(m.total), held: false });
+        const x = rand(0, seaW);
+        const depth = rand(top, x > pageW ? deepBottom : bottom);
+        next.set(m.id, prev ? { ...prev, k: subScale(m.total) } : { x, y: depth, dir: Math.random() < 0.5 ? 1 : -1, speed: rand(0.5, 1.2), depth, nextChange: 0, k: subScale(m.total), held: false });
       }
       sims.current = next;
       force((n) => n + 1);
@@ -267,7 +281,7 @@ export const SubFleet: React.FC<{ members: Member[]; seaW: number; top: number; 
         const dt = Math.min(0.1, (nowMs - last) / 1000);
         last = nowMs;
         const now = nowMs / 1000;
-        const { seaW, top, bottom, visible, page, pageW } = env.current;
+        const { seaW, top, visible, page, pageW } = env.current;
         for (const [id, s] of sims.current) {
           if (!s.held) {
             const half = (SUB_LENGTH / 2 + 40) * s.k;
@@ -276,12 +290,14 @@ export const SubFleet: React.FC<{ members: Member[]; seaW: number; top: number; 
             if (s.x > seaW + half + 60 && s.dir > 0 && !seen) s.dir = -1;
             if (now >= s.nextChange) {
               if (s.nextChange > 0 && !seen && Math.random() < 0.5) s.dir = s.dir === 1 ? -1 : 1;
-              s.depth = rand(top, bottom);
+              s.depth = rand(top, floor(s.x));
               s.nextChange = now + rand(12, 30);
             }
             s.x += s.dir * SPEED * s.speed * dt;
+            if (s.depth > floor(s.x)) s.depth = rand(top, floor(s.x));
             const dy = s.depth - s.y;
-            s.y += Math.sign(dy) * Math.min(Math.abs(dy), 4 * dt);
+            // Slow drift in sight; out of sight, a submarine far from its depth gets there quickly.
+            s.y += Math.sign(dy) * Math.min(Math.abs(dy), (seen ? 4 : 60) * dt);
           }
           place(id);
         }

@@ -364,8 +364,18 @@ export const World: React.FC<{
       <SeaFront x0={x0} x1={x1} />
       {/* Under the sea: the depths, and the submarines */}
       <Depths x0={x0} x1={x1} top={BOTTOM + 2} bottom={Math.max(deep, seabed ?? deep)} rock={{ x0: x0, x1: islandRight(pageW) * 0.55 }} />
-      {/* The depths are under the first page only */}
-      <SubFleet members={below} seaW={pageW} top={BOTTOM + 110} bottom={deep - 230} visible={dived} page={page} pageW={pageW} />
+      {/* Submarines cruise under both pages: down to the dive's depth under the first, as deep as
+          the content's sea under the other */}
+      <SubFleet
+        members={below}
+        seaW={pageW * pages}
+        top={BOTTOM + 110}
+        bottom={deep - 230}
+        deepBottom={Math.max(deep, seabed ?? deep) - 230}
+        visible={dived || page === 1}
+        page={page}
+        pageW={pageW}
+      />
     </g>
   );
 };
