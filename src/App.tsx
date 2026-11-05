@@ -412,18 +412,14 @@ export const App: React.FC = () => {
           </section>
         </div>
       </div>
-      {/* The footer links, one per page and attached to it (they stay put when diving) */}
-      <div className="footer-track" style={{ width: frame.w * SLOTS, transform: `translateX(${-index * frame.w}px)`, transition: slide }}>
-        {[0, 1].map((slot) => (
-          <footer key={slot} className="links" style={slot === 0 ? { right: frame.w + edge } : { left: frame.w + edge }} inert={index !== slot}>
-            {LINKS.map((l) => (
-              <a key={l.href} href={l.href} target="_blank" rel="noreferrer">
-                {l.label}
-              </a>
-            ))}
-          </footer>
+      {/* The footer links, attached to the camera: they stay put when sliding and diving */}
+      <footer className="links links-fixed" style={{ right: edge }}>
+        {LINKS.map((l) => (
+          <a key={l.href} href={l.href} target="_blank" rel="noreferrer">
+            {l.label}
+          </a>
         ))}
-      </div>
+      </footer>
       <JoinFleet
         open={join}
         onJoined={refreshFleet}

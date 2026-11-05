@@ -893,3 +893,9 @@ a:focus-visible {
     bottom: calc(62px + env(safe-area-inset-bottom, 0px));
   }
 }
+
+.links-fixed {
+  position: fixed;
+  bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+  z-index: 1;
+}
