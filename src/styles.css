@@ -1294,13 +1294,3 @@ a:focus-visible {
     top: 8px;
   }
 }
-/* One top inset for the navigation and the cards beside it, so the first link lines up with
-   the top of the card's content (the cards' padding the same on every side). */
-@media (min-width: 760px) {
-  .dock .dock-half {
-    padding: 30px 22px 22px;
-  }
-  .card-home {
-    padding: 30px;
-  }
-}
