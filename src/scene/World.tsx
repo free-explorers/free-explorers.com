@@ -354,11 +354,8 @@ export const World: React.FC<{
           <path d={swell(ISLAND_WATER + 4, 3, x0 - WAVE_LEN, islandRight(pageW) + 80, 40)} fill="url(#sea)" />
         </Slide>
         {/* The page to the right: Veshell's house-boat, or the Architects' jetty */}
-        {side === "veshell" ? (
-          <VeshellBoat cx={pageW + reserveLeft + (pageW - reserveLeft) * 0.5} maxWidth={(pageW - reserveLeft) * 0.88} />
-        ) : (
-          <Jetty x={pageW + reserveLeft + Math.max(60, (pageW - reserveLeft) * 0.5 - 300)} architects={ARCHITECTS} />
-        )}
+        {/* (Veshell's page is a showcase: no scenery there, the open sea behind its content) */}
+        {side === "architects" && <Jetty x={pageW + reserveLeft + Math.max(60, (pageW - reserveLeft) * 0.5 - 300)} architects={ARCHITECTS} />}
       </Fleet>
       <SeaFront x0={x0} x1={x1} />
       {/* Under the sea: the depths, and the submarines */}

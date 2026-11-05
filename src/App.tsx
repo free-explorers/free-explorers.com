@@ -4,7 +4,7 @@ import { BOTTOM, DIVE_TOP, World, beamY } from "./scene/World";
 import { BoatShape } from "./scene/Boat";
 import { BOATS, COLLECTIVE, useMembers, type BoatKind, type Member } from "./members";
 import { JoinFleet } from "./JoinFleet";
-import { ArchitectsContent, VeshellContent } from "./Pages";
+import { ArchitectsContent, SECTIONS, VeshellContent } from "./Pages";
 
 // The site is one long sea: each page is a stretch of it, and the menu slides the camera
 // along to the page's stretch. The title and the menu stay put on the right.
@@ -228,6 +228,31 @@ export const App: React.FC = () => {
   // The content column on the page to the right.
   const contentW = frame.narrow ? frame.w - edge * 2 : Math.min(620, frame.w * 0.42);
   const reserveLeft = frame.narrow ? 0 : (RAIL_W + GAP + contentW + GAP) / frame.unit;
+  // Veshell's showcase: as wide as the page beside the rail.
+  const showcaseW = frame.narrow ? contentW : Math.min(1100, frame.w - RAIL_W - GAP - edge);
+  // The content column: scrolling to a section, and the section being read.
+  const contentRef = useRef<HTMLElement>(null);
+  const [activeSection, setActiveSection] = useState(SECTIONS[side][0].id);
+  useEffect(() => {
+    setActiveSection(SECTIONS[side][0].id);
+    contentRef.current?.scrollTo({ top: 0 });
+  }, [side]);
+  const scrollToSection = (id: string) => {
+    const box = contentRef.current;
+    const el = box?.querySelector<HTMLElement>(`#section-${id}`);
+    if (!box || !el) return;
+    box.scrollTo({ top: el.offsetTop - 12, behavior: reduced ? "auto" : "smooth" });
+  };
+  const followReading = () => {
+    const box = contentRef.current;
+    if (!box) return;
+    const sections = [...box.querySelectorAll<HTMLElement>("[data-section]")];
+    // The last section whose top has passed a third of the way down; the last one at the end.
+    const atEnd = box.scrollTop + box.clientHeight >= box.scrollHeight - 4;
+    const line = box.scrollTop + box.clientHeight / 3;
+    const current = atEnd ? sections[sections.length - 1] : sections.filter((s) => s.offsetTop <= line).pop() ?? sections[0];
+    if (current?.dataset.section) setActiveSection(current.dataset.section);
+  };
   const titleTop = (() => {
     if (frame.narrow || !titleBox.w) return 0;
     const cx = frame.w - edge - titleBox.w / 2;
@@ -360,7 +385,12 @@ export const App: React.FC = () => {
         {/* Navigation: one container on the edge between the two pages, split there: home's
             links (docked to the right edge on the home page), the way back (docked to the left
             edge on the other) */}
-        <nav ref={navRef} className="dock" style={{ left: frame.w - halfW, width: halfW * 2, top: dockTop }} aria-label="Pages">
+        <nav
+          ref={navRef}
+          className="dock"
+          style={{ left: frame.w - halfW, width: halfW * 2, top: dockTop, ...(frame.narrow ? {} : { height: `calc(100% - ${dockTop + 84}px)` }) }}
+          aria-label="Pages"
+        >
           <div className="dock-half dock-home" inert={index !== 0}>
             {PAGES.filter((p) => p.id !== "explorers").map((p) => (
               <a key={p.id} href={`#/${p.id}`}>
@@ -378,6 +408,18 @@ export const App: React.FC = () => {
               </span>
               The Explorers
             </a>
+            {/* The page's sections: scrolls the content to one, and follows the reading */}
+            {!frame.narrow && (
+              <ol className="toc">
+                {SECTIONS[side].map((sec) => (
+                  <li key={sec.id}>
+                    <button type="button" aria-current={sec.id === activeSection ? "location" : undefined} onClick={() => scrollToSection(sec.id)}>
+                      {sec.label}
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            )}
           </div>
         </nav>
         {/* The Explorers' card, under the navigation on the right */}
@@ -403,10 +445,21 @@ export const App: React.FC = () => {
         {/* The page's content, on the left of the page to the right: tall, and scrollable */}
         <article
           key={side}
-          className="card card-content"
-          style={{ top: cardTop, left: frame.narrow ? frame.w + edge : frame.w + RAIL_W + GAP, width: contentW }}
+          className={`card card-content${side === "veshell" ? " card-showcase" : ""}`}
+          ref={contentRef}
+          style={{ top: cardTop, left: frame.narrow ? frame.w + edge : frame.w + RAIL_W + GAP, width: side === "veshell" ? showcaseW : contentW }}
           inert={index !== 1}
           tabIndex={index === 1 ? 0 : -1}
+          onScroll={followReading}
+          onClick={(e) => {
+            // Links to a section scroll the column (they'd otherwise change the page).
+            const a = (e.target as HTMLElement).closest("a");
+            const href = a?.getAttribute("href") ?? "";
+            if (href.startsWith("#section-")) {
+              e.preventDefault();
+              scrollToSection(href.slice("#section-".length));
+            }
+          }}
         >
           {side === "veshell" ? <VeshellContent /> : <ArchitectsContent />}
         </article>
