@@ -949,7 +949,7 @@ a:focus-visible {
 }
 /* The content column: tall, scrollable on its own. */
 .card-content {
-  padding: 24px 28px 28px;
+  padding: 28px;
 }
 .card-content:focus-visible {
   outline: 2px solid var(--gold);
@@ -1083,7 +1083,7 @@ a:focus-visible {
 }
 /* Veshell's showcase */
 .card-showcase {
-  padding: 22px 30px 40px;
+  padding: 30px;
 }
 .card-content .block + .block {
   margin-top: 34px;
