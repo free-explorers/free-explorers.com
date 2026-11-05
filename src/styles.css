@@ -36,7 +36,8 @@ a {
   top: 0;
   left: 0;
   width: 100%;
-  overflow: hidden;
+  /* clip, not hidden: hidden would make it a scroll container and stop the rail sticking */
+  overflow: clip;
 }
 /* On the pages to the right, the whole site scrolls (the scrollbar hidden: the scene is the
    page) */
@@ -1272,5 +1273,24 @@ a:focus-visible {
   .dock .dock-half {
     width: var(--half);
     max-width: none;
+  }
+}
+
+/* The navigation's lane and its sticky rail. */
+.rail-lane {
+  position: absolute;
+  bottom: 0;
+  width: 0;
+  pointer-events: none;
+}
+.rail-lane .dock {
+  position: sticky;
+  top: 16px;
+  left: 0;
+  pointer-events: auto;
+}
+@media (max-width: 759px) {
+  .rail-lane .dock {
+    top: 8px;
   }
 }

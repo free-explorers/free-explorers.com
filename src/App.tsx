@@ -257,7 +257,6 @@ export const App: React.FC = () => {
     ro.observe(el);
     return () => ro.disconnect();
   }, [side]);
-  const [scrollY, setScrollY] = useState(0);
   const [activeSection, setActiveSection] = useState(SECTIONS[side][0].id);
   useEffect(() => setActiveSection(SECTIONS[side][0].id), [side]);
   const followReading = () => {
@@ -272,7 +271,6 @@ export const App: React.FC = () => {
   };
   useEffect(() => {
     const onScroll = () => {
-      setScrollY(window.scrollY);
       followReading();
     };
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -307,7 +305,6 @@ export const App: React.FC = () => {
     document.documentElement.classList.toggle("scrolling", index === 1);
   }, [index]);
   // The navigation rail stays on screen: it rises to the top as the title scrolls away.
-  const railTop = Math.max(frame.narrow ? 8 : 16, dockTop - scrollY);
 
   return (
     <div className="site" style={{ height: docH }}>
@@ -428,6 +425,51 @@ export const App: React.FC = () => {
           <span className="wordmark">{SIDE_PAGES[side].title}</span>
           <p className="tagline">{SIDE_PAGES[side].tagline}</p>
         </header>
+        {/* The navigation's lane: from under the titles down the whole page, on the edge between the
+            pages; the navigation sticks in it, scrolling with the page until it reaches the top of
+            the screen (the browser's own sticky positioning, so it never lags behind) */}
+        <div className="rail-lane" style={{ left: frame.w, top: dockTop }}>
+          {/* Navigation: one container on the edge between the two pages, split there: home's
+              links (docked to the right edge on the home page), the way back (docked to the left
+              edge on the other) */}
+          <nav
+            ref={navRef}
+            className="dock"
+            style={(frame.narrow ? { "--half": `${halfW}px` } : { "--rail-max": `calc(100vh - ${(frame.narrow ? 8 : 16) + 84}px)` }) as unknown as React.CSSProperties}
+            aria-label="Pages"
+          >
+            <div ref={homeNav} className="dock-half dock-home" inert={index !== 0}>
+              {PAGES.filter((p) => p.id !== "explorers").map((p) => (
+                <a key={p.id} href={`#/${p.id}`}>
+                  {p.label}
+                  <span className="menu-arrow" aria-hidden="true">
+                    →
+                  </span>
+                </a>
+              ))}
+            </div>
+            <div ref={sideNav} className="dock-half dock-side" inert={index !== 1}>
+              <a href="#/explorers">
+                <span className="menu-arrow" aria-hidden="true">
+                  ←
+                </span>
+                The Explorers
+              </a>
+              {/* The page's sections: scrolls the content to one, and follows the reading */}
+              {!frame.narrow && (
+                <ol className="toc">
+                  {SECTIONS[side].map((sec) => (
+                    <li key={sec.id}>
+                      <button type="button" aria-current={sec.id === activeSection ? "location" : undefined} onClick={() => scrollToSection(sec.id)}>
+                        {sec.label}
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </nav>
+        </div>
         {/* The Explorers' card, under the navigation on the right */}
         <section
           className="card card-home"
@@ -468,55 +510,6 @@ export const App: React.FC = () => {
         >
           {side === "veshell" ? <VeshellContent /> : <ArchitectsContent />}
         </article>
-      </div>
-      {/* The navigation rail: slides with the pages and dives with the camera, but stays on
-          screen while the page to the right scrolls */}
-      <div
-        className="rail-track"
-        style={{ width: frame.w * SLOTS, transform: `translate(${-index * frame.w}px, ${-diveY}px)`, transition: slide }}
-        inert={dived}
-        aria-hidden={dived}
-      >
-          {/* Navigation: one container on the edge between the two pages, split there: home's
-              links (docked to the right edge on the home page), the way back (docked to the left
-              edge on the other) */}
-          <nav
-            ref={navRef}
-            className="dock"
-            style={{ left: frame.w, top: railTop, ...(frame.narrow ? { "--half": `${halfW}px` } : { "--rail-max": `calc(100vh - ${railTop + 84}px)` }) } as React.CSSProperties}
-            aria-label="Pages"
-          >
-            <div ref={homeNav} className="dock-half dock-home" inert={index !== 0}>
-              {PAGES.filter((p) => p.id !== "explorers").map((p) => (
-                <a key={p.id} href={`#/${p.id}`}>
-                  {p.label}
-                  <span className="menu-arrow" aria-hidden="true">
-                    →
-                  </span>
-                </a>
-              ))}
-            </div>
-            <div ref={sideNav} className="dock-half dock-side" inert={index !== 1}>
-              <a href="#/explorers">
-                <span className="menu-arrow" aria-hidden="true">
-                  ←
-                </span>
-                The Explorers
-              </a>
-              {/* The page's sections: scrolls the content to one, and follows the reading */}
-              {!frame.narrow && (
-                <ol className="toc">
-                  {SECTIONS[side].map((sec) => (
-                    <li key={sec.id}>
-                      <button type="button" aria-current={sec.id === activeSection ? "location" : undefined} onClick={() => scrollToSection(sec.id)}>
-                        {sec.label}
-                      </button>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </div>
-          </nav>
       </div>
       {/* The footer links, attached to the camera: they stay put when sliding and diving */}
       <footer className="links links-fixed" style={{ right: edge }}>
