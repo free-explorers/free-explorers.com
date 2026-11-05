@@ -9,7 +9,9 @@ export const COLLECTIVE = "https://opencollective.com/free-explorers";
 // a big fleet. Links and the checkout stay the Free Explorers'.
 const PREVIEW = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("collective")?.replace(/[^a-z0-9-]/gi, "") || null : null;
 const SLUG = PREVIEW ?? "free-explorers";
-const MEMBERS_URL = `https://opencollective.com/${SLUG}/members/all.json`;
+// The collective's member list, and its projects' (Veshell's donors gave to the project): a
+// person in both is one explorer, their gifts added up.
+const MEMBER_LISTS = (PREVIEW ? [PREVIEW] : ["free-explorers", "veshell"]).map((slug) => `https://opencollective.com/${slug}/members/all.json`);
 
 export type BoatKind = "dinghy" | "sloop" | "brig" | "galleon";
 // Amounts are per month (a yearly contribution counts for a twelfth of it); `max` null is open.
@@ -71,7 +73,17 @@ type Raw = {
 
 // One boat per person: backers only (not the host or the collective's own projects). A
 // person listed twice keeps their active entry, else their bigger contribution.
-export const toMembers = (raw: Raw[]): Member[] => {
+// `raw` is one or more member lists one after another: a person's entries in different lists
+// add their totals up (the same list never lists anyone twice with different totals, so a
+// repeat there is the same gift and keeps the bigger one).
+export const toMembers = (raw: Raw[], lists: Raw[][] = [raw]): Member[] => {
+  // Each person's total across the lists.
+  const totals = new Map<string, number>();
+  for (const list of lists) {
+    const inList = new Map<string, number>();
+    for (const m of list) if (m.role === "BACKER") inList.set(m.profile, Math.max(inList.get(m.profile) ?? 0, m.totalAmountDonated ?? 0));
+    for (const [profile, t] of inList) totals.set(profile, (totals.get(profile) ?? 0) + t);
+  }
   const byProfile = new Map<string, Member>();
   for (const m of raw) {
     if (m.role !== "BACKER" || (m.type !== "USER" && m.type !== "ORGANIZATION")) continue;
@@ -85,7 +97,7 @@ export const toMembers = (raw: Raw[]): Member[] => {
       boat: boatFor(amount),
       amount,
       active: m.isActive,
-      total: m.totalAmountDonated ?? 0,
+      total: totals.get(m.profile) ?? m.totalAmountDonated ?? 0,
       currency: m.currency ?? "USD",
     };
     const prev = byProfile.get(m.profile);
@@ -94,7 +106,7 @@ export const toMembers = (raw: Raw[]): Member[] => {
       continue;
     }
     const better = next.active !== prev.active ? next.active : next.amount > prev.amount;
-    byProfile.set(m.profile, { ...(better ? next : prev), active: prev.active || next.active, total: Math.max(prev.total, next.total) });
+    byProfile.set(m.profile, { ...(better ? next : prev), active: prev.active || next.active, total: next.total });
   }
   return [...byProfile.values()].sort((a, b) => Number(b.active) - Number(a.active) || RANK[b.boat] - RANK[a.boat] || b.amount - a.amount);
 };
@@ -162,11 +174,11 @@ const withContributions = (members: Member[], orders: Order[], complete = false)
 
 // The whole member list, page by page (Open Collective serves 1,000 at a time), up to a cap.
 const MAX_MEMBERS = 10000;
-const fetchMemberList = async (): Promise<Raw[]> => {
+const fetchMemberList = async (url: string): Promise<Raw[]> => {
   const all: Raw[] = [];
   const stamp = Date.now();
   for (let offset = 0; offset < MAX_MEMBERS; offset += 1000) {
-    const r = await fetch(`${MEMBERS_URL}?limit=1000&offset=${offset}&t=${stamp}`);
+    const r = await fetch(`${url}?limit=1000&offset=${offset}&t=${stamp}`);
     if (!r.ok) throw r.status;
     const page: Raw[] = await r.json();
     all.push(...page);
@@ -174,17 +186,20 @@ const fetchMemberList = async (): Promise<Raw[]> => {
   }
   return all;
 };
+const fetchMemberLists = () => Promise.all(MEMBER_LISTS.map(fetchMemberList));
 
 // Starts from the bundled snapshot and swaps in the live list once it arrives. `refresh`
 // fetches it again (after someone joins), past any cache.
 export const useMembers = () => {
-  const [members, setMembers] = useState(() => (PREVIEW ? [] : withContributions(toMembers(snapshot as Raw[]), ordersSnapshot as Order[])));
+  const [members, setMembers] = useState(() =>
+    PREVIEW ? [] : withContributions(toMembers((snapshot as Raw[][]).flat(), snapshot as Raw[][]), ordersSnapshot as Order[]),
+  );
   const refresh = useCallback(() => {
-    const list = fetchMemberList();
+    const lists = fetchMemberLists();
     // Both are needed to tell boats from submarines: if either fails, the current fleet stays
     // (the bundled snapshot at first) rather than everyone turning into boats or submarines.
-    Promise.all([list, fetchOrders()])
-      .then(([raw, orders]: [Raw[], Order[]]) => setMembers(withContributions(toMembers(raw), orders, true)))
+    Promise.all([lists, fetchOrders()])
+      .then(([raw, orders]: [Raw[][], Order[]]) => setMembers(withContributions(toMembers(raw.flat(), raw), orders, true)))
       .catch(() => {});
   }, []);
   useEffect(refresh, [refresh]);
