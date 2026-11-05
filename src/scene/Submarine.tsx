@@ -40,7 +40,11 @@ export const SubShape: React.FC<{ name: string; image?: string | null; uid: stri
   const port = { cx: L * 0.2, cy: -2, r: 19 };
   const text = name.toUpperCase();
   // Long names get a smaller font rather than squeezed letters (which hop about when moving).
-  const max = L * 0.42;
+  // The name: centred vertically on the hull, in the middle of its tail-side two thirds (from
+  // the stern, past the propeller housing, to the big porthole).
+  const tail = -L / 2 - 26;
+  const nameX = tail + (L + 32) / 3;
+  const max = L * 0.58;
   const fitSize = Math.min(12, max / Math.max(1, text.length * 0.68));
   return (
     <g>
@@ -96,17 +100,17 @@ export const SubShape: React.FC<{ name: string; image?: string | null; uid: stri
       {/* Small lit portholes along the hull */}
       {[-0.4, -0.3].map((f) => (
         <g key={f}>
-          <circle cx={L * f} cy={-4} r={7} fill={BRASS} />
-          <circle cx={L * f} cy={-4} r={4.5} fill={LIGHT} />
+          <circle cx={L * f} cy={-17} r={5.5} fill={BRASS} />
+          <circle cx={L * f} cy={-17} r={3.5} fill={LIGHT} />
         </g>
       ))}
       {/* The headlight */}
       <circle cx={L / 2 + 2} cy={0} r={6} fill={LIGHT} stroke={BRASS} strokeWidth={2.5} />
       {/* The donor's name on the hull, and their picture in the big porthole */}
-      <g className="unflip" data-cx={-L * 0.08}>
+      <g className="unflip" data-cx={nameX}>
         {/* rotate(0.01): an invisible tilt so the text is drawn as smooth shapes, not glyphs
             snapped to whole pixels (which made the name hop as the submarine drifts) */}
-        <text transform={`rotate(0.01 ${-L * 0.08} 14)`} x={-L * 0.08} y={14} dy="0.36em" textAnchor="middle" fontSize={fitSize} fontWeight={800} letterSpacing={1} fill={CREAM} fontFamily={FONT}>
+        <text transform={`rotate(0.01 ${nameX} 0)`} x={nameX} y={0} dy="0.36em" textAnchor="middle" fontSize={fitSize} fontWeight={800} letterSpacing={1} fill={CREAM} fontFamily={FONT}>
           {text}
         </text>
       </g>
