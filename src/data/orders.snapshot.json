@@ -1,0 +1,12 @@
+[
+  {
+    "status": "ACTIVE",
+    "frequency": "MONTHLY",
+    "amount": {
+      "value": 1
+    },
+    "fromAccount": {
+      "slug": "piotron"
+    }
+  }
+]

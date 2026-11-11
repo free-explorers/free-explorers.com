@@ -1,0 +1,68 @@
+:root {
+  color-scheme: dark;
+}
+body {
+  margin: 0;
+  background: #10222d;
+  color: #f4f1ea;
+  font: 400 15px/1.5 "Outfit", "Helvetica Neue", Arial, sans-serif;
+}
+.lab {
+  padding: 28px 24px 60px;
+  max-width: 1700px;
+  margin: 0 auto;
+}
+.lab header h1 {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 800;
+}
+.lab header p {
+  margin: 4px 0 18px;
+  color: #b9d3dd;
+  max-width: 900px;
+}
+.lab-row h2 {
+  margin: 22px 0 8px;
+  font-size: 22px;
+}
+.lab-row h2 span {
+  font-size: 14px;
+  font-weight: 400;
+  color: #b9d3dd;
+}
+.lab-cells {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+.lab-cell {
+  margin: 0;
+}
+.lab-cell svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+.lab-cell figcaption {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #b9d3dd;
+}
+.lab-current svg {
+  opacity: 0.7;
+  outline: 2px dashed rgba(255, 255, 255, 0.25);
+  outline-offset: -2px;
+}
+.lab-later {
+  margin-top: 56px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.lab-cells-big {
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+}
+.lab-cells-fleet {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}

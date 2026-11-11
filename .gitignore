@@ -1,0 +1,4 @@
+node_modules
+dist
+.hugo_build.lock
+dist-ssr

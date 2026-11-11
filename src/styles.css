@@ -1,0 +1,1391 @@
+:root {
+  --ink: #f4f1ea;
+  --muted: #b9d3dd;
+  --teal: #006888;
+  --teal-light: #7fd0ec;
+  --gold: #f9c46b;
+  --night: #10222d;
+  --font: "Outfit", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--ink);
+  font: 400 17px/1.55 var(--font);
+  overflow: hidden;
+}
+
+a {
+  color: inherit;
+}
+
+.site {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  /* clip, not hidden: hidden would make it a scroll container and stop the rail sticking */
+  overflow: clip;
+}
+/* On the pages to the right, the whole site scrolls (the scrollbar hidden: the scene is the
+   page) */
+html.scrolling body {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+html.scrolling body::-webkit-scrollbar {
+  display: none;
+}
+
+.sky {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.scene-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.scene {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.star {
+  animation: twinkle 5s ease-in-out infinite alternate;
+}
+@keyframes twinkle {
+  to {
+    opacity: 0.1;
+  }
+}
+
+/* A boat's name and tier show on hover or keyboard focus. */
+.boat {
+  cursor: pointer;
+  outline: none;
+}
+.boat-former {
+  opacity: 0.75;
+}
+.boat-label {
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+.boat:hover .boat-label,
+.boat:focus-visible .boat-label {
+  opacity: 1;
+}
+.boat:focus-visible > g:first-child {
+  filter: drop-shadow(0 0 6px var(--gold));
+}
+.boat-name,
+.boat-tier {
+  font-family: var(--font);
+  paint-order: stroke;
+  stroke: #0b2633;
+  stroke-width: 6px;
+  stroke-linejoin: round;
+}
+.boat-name {
+  font-size: 22px;
+  font-weight: 700;
+  fill: #fff;
+}
+.boat-tier {
+  font-size: 15px;
+  fill: var(--gold);
+}
+
+/* The column on the right: title, menu, the page's text, links. */
+.column {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: calc(40px + env(safe-area-inset-top, 0px)) 48px calc(32px + env(safe-area-inset-bottom, 0px)) 0;
+  pointer-events: none;
+}
+.column > * {
+  pointer-events: auto;
+}
+
+.title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+/* On one line: it may reach left past the column, over the sky. */
+.wordmark {
+  display: block;
+  white-space: nowrap;
+  font-weight: 800;
+  font-size: clamp(60px, 7vw, 128px);
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  /* Pure white, like the lighthouse logo */
+  color: #fff;
+}
+.tagline {
+  margin: 10px 0 0;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.menu a {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 21px;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--muted);
+  transition: color 0.2s;
+}
+.menu a:hover {
+  color: var(--ink);
+}
+.menu a[aria-current="page"] {
+  color: var(--ink);
+}
+.menu a[aria-current="page"]::after {
+  content: "";
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--gold);
+  align-self: center;
+}
+.menu-index {
+  font-size: 13px;
+  color: var(--teal-light);
+  opacity: 0.8;
+}
+
+.panels {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+}
+.panel {
+  grid-area: 1 / 1;
+  align-self: start;
+  padding: 22px 24px;
+  border-radius: 18px;
+  background: rgba(10, 34, 45, 0.55);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transform: translateX(24px);
+  transition:
+    opacity 0.5s,
+    transform 0.6s;
+  visibility: hidden;
+  max-height: 100%;
+  overflow: auto;
+}
+.panel-on {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition-delay: 0.35s;
+}
+.panel h2 {
+  margin: 0 0 4px;
+  font-size: 30px;
+  font-weight: 800;
+}
+.panel p {
+  margin: 0 0 14px;
+}
+.panel .lead {
+  color: var(--gold);
+  font-weight: 500;
+}
+.count {
+  color: var(--muted);
+}
+.count strong {
+  color: var(--ink);
+  font-size: 22px;
+}
+
+.count-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.count-row .count {
+  margin: 0;
+}
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.legend button {
+  all: unset;
+  box-sizing: border-box;
+  width: 100%;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 0 6px;
+  margin: 0 -6px;
+  display: grid;
+  grid-template-columns: 34px 1fr auto 2.2em;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+.legend button:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.legend button:focus-visible {
+  outline: 2px solid var(--gold);
+}
+.legend svg {
+  width: 34px;
+  height: 34px;
+}
+.legend-n {
+  color: var(--muted);
+  text-align: right;
+}
+.legend-range {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.cta {
+  display: inline-block;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #1d2a33;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.15s;
+}
+.cta:hover {
+  transform: translateY(-2px);
+}
+.cta-ghost {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.links {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 18px;
+  font-size: 15px;
+  color: var(--muted);
+}
+.links a {
+  text-decoration: none;
+}
+.links a:hover {
+  color: var(--ink);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Phones: the column spans the top of the screen, over the sky. */
+@media (max-width: 759px) {
+  body {
+    font-size: 15px;
+  }
+  .column {
+    left: 0;
+    bottom: auto;
+    max-height: 62%;
+    gap: 12px;
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 16px 0;
+  }
+  .wordmark {
+    font-size: 36px;
+  }
+  .tagline {
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  .menu {
+    flex-direction: row;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .menu a {
+    font-size: 16px;
+    padding: 2px 0;
+  }
+  .menu a[aria-current="page"]::after {
+    display: none;
+  }
+  .menu a[aria-current="page"] {
+    box-shadow: inset 0 -3px var(--gold);
+  }
+  .menu-index {
+    display: none;
+  }
+  .panel {
+    padding: 14px 16px;
+    margin-left: auto;
+    max-width: 420px;
+  }
+  .panel h2 {
+    font-size: 22px;
+  }
+  .legend {
+    display: none;
+  }
+  .links {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star {
+    animation: none;
+  }
+  .panel {
+    transition: none;
+  }
+}
+
+/* The join panel: choose a boat, then Open Collective's checkout. */
+.join {
+  width: min(880px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 0;
+  border-radius: 22px;
+  background: #10283a;
+  color: var(--ink);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+}
+.join::backdrop {
+  background: rgba(6, 20, 28, 0.6);
+  backdrop-filter: blur(3px);
+}
+.join-checkout {
+  height: calc(100dvh - 32px);
+  max-height: 900px;
+}
+.join-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 18px 22px 22px;
+}
+.join-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.join-head h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  text-align: center;
+}
+.join-back,
+.join-close {
+  all: unset;
+  cursor: pointer;
+  color: var(--muted);
+  border-radius: 8px;
+}
+.join-back:hover,
+.join-close:hover {
+  color: var(--ink);
+}
+.join-back:focus-visible,
+.join-close:focus-visible {
+  outline: 2px solid var(--gold);
+}
+.join-close {
+  justify-self: end;
+  font-size: 30px;
+  line-height: 1;
+  padding: 0 6px;
+}
+.join-choose {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+}
+.join-frequency {
+  display: flex;
+  align-self: center;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.join-frequency button {
+  all: unset;
+  cursor: pointer;
+  padding: 7px 18px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.join-frequency button[aria-checked="true"] {
+  background: var(--ink);
+  color: #10283a;
+}
+.join-frequency button:focus-visible {
+  outline: 2px solid var(--gold);
+}
+.join-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0 4px;
+  border-radius: 18px;
+  background: linear-gradient(#173a50 70%, #0b5f7c 70%);
+}
+.join-preview svg {
+  width: min(320px, 70vw);
+  height: auto;
+  aspect-ratio: 700 / 560;
+}
+.join-boat {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding-bottom: 8px;
+}
+.join-boat-name {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--boat);
+}
+.join-amount {
+  font-weight: 800;
+  font-size: 34px;
+}
+.join-amount {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+/* The pencil next to the amount, and the field it opens to type a specific amount. */
+.join-edit {
+  all: unset;
+  cursor: pointer;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: var(--muted);
+}
+.join-edit:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.1);
+}
+.join-edit:focus-visible {
+  outline: 2px solid var(--gold);
+}
+.join-edit svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.join-amount-input {
+  width: 4.2ch;
+  min-width: 3ch;
+  padding: 0 4px;
+  border: 0;
+  border-bottom: 2px solid var(--boat);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  -moz-appearance: textfield;
+}
+.join-amount-input::-webkit-outer-spin-button,
+.join-amount-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.join-amount-input:focus {
+  outline: none;
+}
+.join-amount small {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--muted);
+}
+/* The slider: a track filled up to the thumb in the boat's colour. */
+.join-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.join-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right, var(--boat) var(--fill), rgba(255, 255, 255, 0.15) var(--fill));
+}
+.join-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right, var(--boat) var(--fill), rgba(255, 255, 255, 0.15) var(--fill));
+}
+.join-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 26px;
+  height: 26px;
+  margin-top: -9px;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 0 0 4px var(--boat);
+}
+.join-slider::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 0 0 4px var(--boat);
+}
+.join-slider:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+.join-zones {
+  display: flex;
+  gap: 4px;
+  margin-top: -6px;
+}
+.join-zones button {
+  all: unset;
+  box-sizing: border-box;
+  flex-basis: 0;
+  min-width: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 2px 0;
+  border-top: 3px solid color-mix(in srgb, var(--zone) 35%, transparent);
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+.join-zones button.on {
+  border-top-color: var(--zone);
+  color: var(--ink);
+}
+.join-zones button span {
+  font-weight: 600;
+}
+.join-zones button small {
+  font-size: 12px;
+  opacity: 0.8;
+}
+.join-zones button:focus-visible {
+  outline: 2px solid var(--gold);
+}
+.join-hint {
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  min-height: 2.8em;
+}
+.join-continue {
+  align-self: center;
+  padding: 12px 28px;
+}
+.join-frame {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.join-frame iframe {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 14px;
+  background: #fff;
+}
+.join-loading {
+  position: absolute;
+  inset: 40% 0 auto;
+  margin: 0;
+  text-align: center;
+  color: #4a5a66;
+  pointer-events: none;
+}
+.join-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+.join-done {
+  text-align: center;
+  padding: 20px 10px 10px;
+}
+.join-done p {
+  margin: 0 auto 20px;
+  max-width: 460px;
+}
+@media (max-width: 759px) {
+  .join-panel {
+    padding: 14px 12px 14px;
+  }
+  .join-head h2 {
+    font-size: 20px;
+  }
+  .join-amount {
+    font-size: 28px;
+  }
+  .join-zones button {
+    font-size: 11px;
+  }
+  .join-zones button small {
+    font-size: 10px;
+  }
+}
+
+/* The dive button: a porthole-like pill at the bottom of the screen. */
+.dive {
+  position: fixed;
+  left: 50%;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px 9px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(10, 34, 45, 0.7);
+  box-shadow: inset 0 0 0 2px #d9a441;
+  backdrop-filter: blur(6px);
+  color: var(--ink);
+  font: 500 15px var(--font);
+  cursor: pointer;
+  z-index: 2;
+}
+.dive:hover {
+  background: rgba(10, 34, 45, 0.9);
+}
+.dive:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+.dive svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: #d9a441;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Text on moving boats and submarines is placed exactly, not snapped to whole pixels (which
+   made names hop a pixel at a time as their hull moved smoothly). */
+.scene text {
+  text-rendering: geometricPrecision;
+}
+
+.dive[hidden] {
+  display: none;
+}
+
+/* Under the sea, the dive button sits at the top as the depth gauge, with its Surface arrow. */
+.dive {
+  transition-property: bottom, padding, transform;
+  transition-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+}
+.dive-under {
+  bottom: calc(100% - 84px - env(safe-area-inset-top, 0px));
+  padding: 8px 20px 8px 14px;
+}
+.dive-depth {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.05;
+}
+.depth-label {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #d9a441;
+}
+.depth-value {
+  font-size: 24px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.dive-surface {
+  padding-left: 10px;
+  margin-left: 2px;
+  border-left: 1px solid rgba(217, 164, 65, 0.5);
+  font-size: 14px;
+}
+
+/* The underwater card (positioned and moved by App). */
+.depth-card {
+  position: absolute;
+  right: 48px;
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+@media (max-width: 759px) {
+  .depth-card {
+    left: 16px;
+    right: 16px;
+  }
+}
+
+.menu-arrow {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+/* The interface attached to the pages (moved by App with the scene). */
+.ui-track,
+.footer-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  pointer-events: none;
+}
+.ui-track > *,
+.footer-track > * {
+  pointer-events: auto;
+}
+.ui-track .title {
+  position: absolute;
+  margin: 0;
+}
+.title-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+/* The docked container, split in two at the edge between the pages. */
+.dock {
+  position: absolute;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  /* Both halves as tall as the taller one: one container, cut at the edge */
+  align-items: stretch;
+}
+.dock-half {
+  max-height: 100%;
+  overflow: auto;
+  padding: 18px 26px 22px;
+  background: rgba(10, 34, 45, 0.6);
+  backdrop-filter: blur(6px);
+}
+.dock-home {
+  border-radius: 18px 0 0 18px;
+}
+.dock-side {
+  border-radius: 0 18px 18px 0;
+}
+.dock-half p {
+  margin: 0 0 14px;
+}
+.dock .menu {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.dock .menu {
+  align-items: flex-start;
+}
+.dock .menu a {
+  gap: 8px;
+}
+.footer-track {
+  top: auto;
+  bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+  height: auto;
+}
+.footer-track .links {
+  position: absolute;
+  bottom: 0;
+}
+@media (max-width: 759px) {
+  .dock-half {
+    padding: 12px 16px 14px;
+    max-height: 46vh;
+  }
+  .ui-track .wordmark {
+    font-size: 36px;
+  }
+  .footer-track .links {
+    display: flex;
+  }
+}
+@media (max-width: 759px) {
+  .dock .menu {
+    justify-content: flex-start;
+  }
+  /* Above the footer links on phones */
+  .dive {
+    bottom: calc(62px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.links-fixed {
+  position: fixed;
+  bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+  z-index: 1;
+}
+
+/* The navigation (split at the page edge) and the cards under it. */
+.dock {
+  grid-template-columns: 1fr 1fr;
+}
+.dock .dock-half {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 22px;
+  padding: 12px 26px;
+  overflow: visible;
+}
+.dock-half a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 19px;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--ink);
+}
+.dock-half a:hover {
+  color: #fff;
+}
+.card {
+  position: absolute;
+  padding: 20px 24px;
+  border-radius: 18px;
+  background: rgba(10, 34, 45, 0.6);
+  backdrop-filter: blur(6px);
+}
+.card p {
+  margin: 0 0 14px;
+}
+/* The content column: tall, scrollable on its own. */
+.card-content {
+  padding: 24px 28px 28px;
+}
+.card-content:focus-visible {
+  outline: 2px solid var(--gold);
+}
+.card-content .lead {
+  font-size: 19px;
+  color: var(--ink);
+}
+.card-content h2 {
+  margin: 26px 0 8px;
+  font-size: 21px;
+  font-weight: 700;
+}
+.card-content h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+.card-content ul {
+  margin: 0 0 14px;
+  padding-left: 20px;
+}
+.card-content li {
+  margin-bottom: 6px;
+}
+.card-content kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 -2px rgba(0, 0, 0, 0.3);
+  font: 600 14px var(--font);
+  text-align: center;
+}
+.card-content code {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  font: 14px ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+.card-content .note {
+  color: var(--muted);
+  font-size: 14px;
+}
+.install {
+  margin: 0 0 16px;
+}
+.install dt {
+  margin-top: 10px;
+  font-weight: 600;
+}
+.install dd {
+  margin: 4px 0 0;
+}
+.architect {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.architect img {
+  flex: none;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--teal);
+}
+@media (max-width: 759px) {
+  .dock .dock-half {
+    padding: 10px 16px;
+  }
+  .dock-half a {
+    font-size: 16px;
+  }
+  .card {
+    padding: 14px 16px;
+  }
+  .card-home .legend {
+    display: none;
+  }
+
+}
+
+/* Wide screens: the navigation as a vertical rail, its links stacked. */
+@media (min-width: 760px) {
+  .dock .dock-half {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 10px;
+    padding: 18px 20px;
+  }
+  .dock-home {
+    align-items: flex-start;
+  }
+}
+
+/* The rail's list of sections (the page to the right). */
+.dock .dock-half {
+  min-height: 0;
+  overflow-y: auto;
+}
+.toc {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.toc button {
+  all: unset;
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border-left: 3px solid transparent;
+  color: var(--muted);
+  font-size: 15px;
+  cursor: pointer;
+}
+.toc button:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.05);
+}
+.toc button[aria-current] {
+  color: var(--ink);
+  border-left-color: var(--gold);
+  background: rgba(255, 255, 255, 0.06);
+}
+.toc button:focus-visible {
+  outline: 2px solid var(--gold);
+}
+/* Veshell's showcase */
+.card-showcase {
+  padding: 22px 30px 40px;
+}
+.card-content .block + .block {
+  margin-top: 34px;
+}
+.card-content .block h2 {
+  margin-top: 0;
+}
+.teaser {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  background: #061b24;
+}
+.teaser-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: radial-gradient(circle at 50% 40%, #0f5068, #061b24 70%);
+  box-shadow: inset 0 0 0 1px rgba(217, 164, 65, 0.35);
+}
+.teaser-play {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 3px #d9a441;
+}
+.teaser-play svg {
+  width: 36px;
+  height: 36px;
+  fill: #d9a441;
+  margin-left: 5px;
+}
+.teaser-label {
+  font-size: 15px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #d9a441;
+}
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.card-content:not(.card-showcase) .split,
+.card-showcase .split:has(> :only-child) {
+  grid-template-columns: 1fr;
+}
+.features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.features li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.features span {
+  color: var(--muted);
+  font-size: 14px;
+}
+@media (max-width: 759px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
+/* The teaser leaves room for the introduction under it on the first screen. */
+.teaser {
+  max-height: 52vh;
+  width: auto;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+.teaser-placeholder {
+  width: 100%;
+}
+
+.rail-track {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+.rail-track > * {
+  pointer-events: auto;
+}
+
+/* One-time gifts: the submarine preview, under the sea, and the amount field. */
+.join-preview-under {
+  background: linear-gradient(#0b5f7c, #042c3a);
+}
+.join-preview-under svg {
+  aspect-ratio: 450 / 175;
+}
+.join-once {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding-bottom: 10px;
+}
+.join-once .join-boat-name {
+  color: #d9a441;
+}
+.join-once-input {
+  width: 5ch;
+  font-size: 34px;
+  font-weight: 800;
+  border-bottom-color: #d9a441;
+}
+.join-once-input[aria-invalid="true"] {
+  border-bottom-color: #e8573f;
+}
+.join-continue:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+.join-preview-under svg {
+  width: min(460px, 82vw);
+}
+
+/* The navigation: a zero-width anchor on the edge between the pages; each half sized by its own
+   content, docked to it (home's half ends at the edge, the other's starts there). */
+.dock {
+  display: block;
+  width: 0;
+  height: auto;
+}
+.dock .dock-half {
+  position: absolute;
+  top: 0;
+  width: max-content;
+  max-width: 320px;
+  max-height: var(--rail-max, none);
+}
+.dock .dock-home {
+  right: 0;
+}
+.dock .dock-side {
+  left: 0;
+}
+@media (max-width: 759px) {
+  .dock .dock-half {
+    width: var(--half);
+    max-width: none;
+  }
+}
+
+/* The navigation's lane and its sticky rail. */
+.rail-lane {
+  position: absolute;
+  bottom: 0;
+  width: 0;
+  pointer-events: none;
+}
+.rail-lane .dock {
+  position: sticky;
+  top: 16px;
+  left: 0;
+  pointer-events: auto;
+}
+@media (max-width: 759px) {
+  .rail-lane .dock {
+    top: 8px;
+  }
+}
+/* 8px above the teaser: with the card's 22px top padding, the same 30px as its sides */
+.teaser {
+  margin-top: 8px;
+}
+
+/* The page's h1 around its wordmark: only a heading for search engines and screen readers. */
+.title-heading {
+  margin: 0;
+  font: inherit;
+}
+
+/* The prerendered page (scripts/prerender.mjs), shown only without JavaScript: the page's
+   content as a plain readable column. */
+html:not(.js) body {
+  overflow: auto;
+}
+.static-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 20px 64px;
+}
+.static-page h1 {
+  margin: 0;
+  font-size: clamp(44px, 9vw, 88px);
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+}
+.static-page nav,
+.static-page footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 24px 0 32px;
+}
+.static-page footer {
+  margin-top: 48px;
+}
+.static-page .block {
+  margin-bottom: 32px;
+}
+.static-page .teaser,
+.static-page img {
+  max-width: 100%;
+}
+
+/* Veshell's screen recordings, in a section's split beside its text: the poster and a play
+   button, the button hidden while it plays (a click anywhere on it pauses). */
+.clip {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+}
+.clip video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  cursor: pointer;
+}
+.clip-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(12, 28, 38, 0.72);
+  box-shadow: inset 0 0 0 3px #d9a441;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.clip-button:hover {
+  transform: scale(1.06);
+}
+.clip-button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+.clip-button svg {
+  width: 28px;
+  height: 28px;
+  fill: #d9a441;
+}
+.clip-idle .clip-button svg {
+  margin-left: 4px;
+}
+.clip-playing .clip-button {
+  opacity: 0;
+}
+/* Loading: the ring turns, a gap in it, until the first frames show. */
+.clip-loading .clip-button {
+  box-shadow: none;
+}
+.clip-loading .clip-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid #d9a441;
+  border-right-color: transparent;
+  animation: clip-spin 0.8s linear infinite;
+}
+@keyframes clip-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .clip-loading .clip-button::before {
+    animation-duration: 2.4s;
+  }
+}
+/* While playing, the button only comes back for the keyboard (a click on the video pauses). */
+.clip-playing .clip-button:focus-visible {
+  opacity: 1;
+}
