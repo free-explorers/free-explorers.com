@@ -38,8 +38,8 @@ const AV1 = 'video/webm; codecs="av01.0.12M.10"';
 const AV1_OPUS = 'video/webm; codecs="av01.0.12M.10, opus"';
 const H264 = "video/mp4";
 
-// The teaser (null: a placeholder holds its place), and its first image, shown before it plays
-// and its thumbnail for search engines.
+// The teaser (null: a placeholder holds its place), and its frame at 0:15.5 (the Veshell logo
+// loading), shown before it plays and its thumbnail for search engines.
 export const TEASER: { webm: string; mp4: string } | null = { webm: "veshell-teaser.webm", mp4: "veshell-teaser.mp4" };
 export const TEASER_POSTER = "/veshell-teaser-poster.jpg";
 
