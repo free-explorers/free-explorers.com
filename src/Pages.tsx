@@ -14,7 +14,6 @@ export const SECTIONS: Record<SidePage, Section[]> = {
     { id: "move", label: "Move by direction" },
     { id: "remember", label: "It remembers" },
     { id: "overview", label: "The Overview" },
-    { id: "play", label: "Play" },
     { id: "environment", label: "A whole environment" },
     { id: "install", label: "Install" },
     { id: "open", label: "Built in the open" },
@@ -43,17 +42,6 @@ const H264 = "video/mp4";
 // and its thumbnail for search engines.
 export const TEASER: { webm: string; mp4: string } | null = { webm: "veshell-teaser.webm", mp4: "veshell-teaser.mp4" };
 export const TEASER_POSTER = "/veshell-teaser-poster.jpg";
-
-// A place for a clip or a screenshot still to record: its frame, and what will go there.
-const Media: React.FC<{ caption: string; ratio?: string }> = ({ caption, ratio = "16 / 9" }) => (
-  <figure className="media-placeholder" style={{ aspectRatio: ratio }}>
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="3" y="5" width="18" height="14" rx="2" />
-      <path d="M10 9.5v5l4-2.5z" />
-    </svg>
-    <figcaption>{caption}</figcaption>
-  </figure>
-);
 
 // A silent screen recording from Veshell (a file in public/, with its first frame as a .jpg
 // poster): its poster and a play button until clicked, then it loops; a click pauses it, and so
@@ -219,11 +207,12 @@ export const VeshellContent: React.FC = () => (
     <Block id="move" title="Move by direction">
       <div className="split">
         <p>
-          <kbd>Super</kbd> + <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> moves you around the map, one hand on the keyboard, with sliding transitions
-          so you always feel where you're going. Add <kbd>Shift</kbd> to carry a window along: reorder it, or send it to the workspace above or below and follow
-          it. The same four directions work everywhere, and the panels show the map at a glance for the mouse and touch.
+          In Veshell you don't search for a window, you go to it. Everything stays exactly where you placed it: your browser left of your editor, your chat one
+          workspace down. So getting somewhere is just a direction, <strong>left, right, up or down</strong>, and every move slides so you feel the way. After a
+          few days you stop thinking about it, the way you reach for the light switch in the dark. It works the same from the keyboard, with the mouse or on a
+          touchscreen, and controller support is on its way.
         </p>
-        <Clip name="J2-NavMap" label="Moving around the Veshell map with W A S D" />
+        <Clip name="J2-NavMap" label="Moving around the Veshell map by direction" />
       </div>
     </Block>
 
@@ -245,16 +234,6 @@ export const VeshellContent: React.FC = () => (
           network, notifications and live system monitoring.
         </p>
         <Clip name="J4-Helm" label="The Overview and the Helm in Veshell" />
-      </div>
-    </Block>
-
-    <Block id="play" title="Play">
-      <div className="split">
-        <p>
-          In game mode, a game runs full size with direct input, with nothing of the shell in the way. Pause it and it waits, frosted, in its tile; come back to
-          it with a click, leave it with <kbd>Ctrl</kbd> + <kbd>Esc</kbd>.
-        </p>
-        <Media caption="Game mode" />
       </div>
     </Block>
 

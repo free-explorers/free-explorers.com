@@ -1138,34 +1138,6 @@ a:focus-visible {
 .card-showcase .split:has(> :only-child) {
   grid-template-columns: 1fr;
 }
-.media-placeholder {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1.5px dashed rgba(217, 164, 65, 0.45);
-  background: rgba(0, 0, 0, 0.18);
-  color: var(--muted);
-  text-align: center;
-}
-.media-placeholder svg {
-  width: 34px;
-  height: 34px;
-  fill: none;
-  stroke: rgba(217, 164, 65, 0.8);
-  stroke-width: 1.5;
-}
-.media-placeholder path {
-  fill: rgba(217, 164, 65, 0.8);
-  stroke: none;
-}
-.media-placeholder figcaption {
-  font-size: 13px;
-}
 .features {
   list-style: none;
   margin: 0;
