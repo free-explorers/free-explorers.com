@@ -30,7 +30,7 @@ export const SECTIONS: Record<SidePage, Section[]> = {
 // Where the videos are served from: "" for this site, or the address of a CDN pulling from it
 // (e.g. a Bunny pull zone, "https://freeexplorers.b-cdn.net"), which serves the same paths.
 // Their posters stay on the site.
-export const MEDIA_BASE = "";
+export const MEDIA_BASE = "https://free-explorers.b-cdn.net";
 const media = (file: string) => `${MEDIA_BASE}/${file}`;
 
 // Each video comes in two files: AV1 at 1440p (WebM), for the browsers that play it, and
