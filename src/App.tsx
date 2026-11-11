@@ -4,35 +4,39 @@ import { BOTTOM, DIVE_TOP, World, beamY } from "./scene/World";
 import { BoatShape } from "./scene/Boat";
 import { BOATS, COLLECTIVE, useMembers, type BoatKind, type Member } from "./members";
 import { JoinFleet } from "./JoinFleet";
-import { ArchitectsContent, SECTIONS, VeshellContent } from "./Pages";
+import { ArchitectsContent, HomeIntro, SECTIONS, VeshellContent } from "./Pages";
+import { ROUTES, applyHead, pageFromPath, type PageId, type SidePageId } from "./routes";
 
 // The site is one long sea: each page is a stretch of it, and the menu slides the camera
 // along to the page's stretch. The title and the menu stay put on the right.
 
-type PageId = "explorers" | "veshell" | "architects";
 // Two slots: the Explorers page (home), and one page to its right showing whichever other page
 // you went to; from there you come back home before going elsewhere.
 const SLOTS = 2;
-const PAGES: { id: PageId; label: string }[] = [
-  { id: "explorers", label: "The Explorers" },
-  { id: "veshell", label: "Veshell" },
-  { id: "architects", label: "Architects" },
-];
-// The pages to the right of the Explorers: their title, shown like the Free Explorers' one.
-const SIDE_PAGES: Record<"veshell" | "architects", { title: string; tagline: string }> = {
-  veshell: { title: "Veshell", tagline: "Stop managing windows. Start exploring." },
-  architects: { title: "Architects", tagline: "The people building the technologies of tomorrow" },
-};
+// The pages to the right of the Explorers, in the menu's order.
+const SIDE_PAGES: SidePageId[] = ["veshell", "architects"];
 const LINKS = [
   { label: "Open Collective", href: COLLECTIVE },
   { label: "GitHub", href: "https://github.com/free-explorers" },
   { label: "Discord", href: "https://discord.gg/vBb7D9a" },
 ];
 
-const pageFromHash = (): PageId => {
-  const id = window.location.hash.replace(/^#\/?/, "");
-  return PAGES.some((p) => p.id === id) ? (id as PageId) : "explorers";
+const pageFromLocation = (): PageId => pageFromPath(window.location.pathname) ?? "explorers";
+
+// Goes to a page: a new address in the history, then the slide (see the popstate listener).
+const navigate = (page: PageId) => {
+  if (window.location.pathname !== ROUTES[page].path) window.history.pushState(null, "", ROUTES[page].path);
+  window.dispatchEvent(new PopStateEvent("popstate"));
 };
+// A link to a page: a real address (for crawlers, new tabs and copying), followed in place.
+const pageLink = (page: PageId) => ({
+  href: ROUTES[page].path,
+  onClick: (e: React.MouseEvent) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    navigate(page);
+  },
+});
 
 // The viewport, and the world's frame for it: 1000 units tall at its reference size,
 // taller on narrow screens (more sky) so a page is never narrower than MIN_PAGE units.
@@ -121,17 +125,17 @@ export const App: React.FC = () => {
     setTimeout(refresh, 8000);
   }, [refresh]);
   const reduced = useReducedMotion();
-  const [page, setPage] = useState<PageId>(pageFromHash);
+  const [page, setPage] = useState<PageId>(pageFromLocation);
   const index = page === "explorers" ? 0 : 1;
   // What the right-hand slot shows: the page there, kept while sliding back home.
-  const [side, setSide] = useState<Exclude<PageId, "explorers">>(() => (page === "explorers" ? "veshell" : page));
+  const [side, setSide] = useState<SidePageId>(() => (page === "explorers" ? "veshell" : page));
   const pageRef = useRef(page);
   pageRef.current = page;
   useEffect(() => {
     let wait = 0;
-    const onHash = () => {
+    const onRoute = () => {
       clearTimeout(wait);
-      const next = pageFromHash();
+      const next = pageFromLocation();
       const from = pageRef.current;
       // From one right-hand page straight to another: slide back home, then out again.
       if (from !== "explorers" && next !== "explorers" && next !== from) {
@@ -145,12 +149,14 @@ export const App: React.FC = () => {
       if (next !== "explorers") setSide(next);
       setPage(next);
     };
-    window.addEventListener("hashchange", onHash);
+    window.addEventListener("popstate", onRoute);
     return () => {
-      window.removeEventListener("hashchange", onHash);
+      window.removeEventListener("popstate", onRoute);
       clearTimeout(wait);
     };
   }, []);
+  // The title, description and link previews follow the page.
+  useEffect(() => applyHead(page), [page]);
   // The beams sweep once, when the site opens; navigating doesn't replay them.
   const beamTime = useBeamSweep(0, reduced);
 
@@ -166,8 +172,8 @@ export const App: React.FC = () => {
       // Under the sea, there's nowhere to go sideways: the depths are under the first page.
       if (dived) return;
       // Right: out to the last page visited on the right; left: back home.
-      if (e.key === "ArrowRight" && index === 0) window.location.hash = `/${side}`;
-      if (e.key === "ArrowLeft" && index === 1) window.location.hash = "/explorers";
+      if (e.key === "ArrowRight" && index === 0) navigate(side);
+      if (e.key === "ArrowLeft" && index === 1) navigate("explorers");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -305,6 +311,8 @@ export const App: React.FC = () => {
     document.documentElement.classList.toggle("scrolling", index === 1);
   }, [index]);
   // The navigation rail stays on screen: it rises to the top as the title scrolls away.
+  const HomeHeading = index === 0 ? "h1" : "div";
+  const SideHeading = index === 1 ? "h1" : "div";
 
   return (
     <div className="site" style={{ height: docH }}>
@@ -415,15 +423,20 @@ export const App: React.FC = () => {
         inert={dived}
         aria-hidden={dived}
       >
+        {/* The page shown has the document's h1; the other title is a plain heading-less div */}
         <header ref={homeHeader} className="title title-home" style={{ top: COLUMN_TOP + titleTop, right: frame.w + edge }} inert={index !== 0}>
-          <a ref={wordmark} href="#/explorers" className="wordmark">
-            Free Explorers
-          </a>
-          <p className="tagline">Funding the open-source projects of tomorrow</p>
+          <HomeHeading className="title-heading">
+            <a ref={wordmark} {...pageLink("explorers")} className="wordmark">
+              {ROUTES.explorers.heading}
+            </a>
+          </HomeHeading>
+          <p className="tagline">{ROUTES.explorers.tagline}</p>
         </header>
         <header className="title title-side" style={{ top: COLUMN_TOP + titleTop, left: frame.w + edge }} inert={index !== 1}>
-          <span className="wordmark">{SIDE_PAGES[side].title}</span>
-          <p className="tagline">{SIDE_PAGES[side].tagline}</p>
+          <SideHeading className="title-heading">
+            <span className="wordmark">{ROUTES[side].heading}</span>
+          </SideHeading>
+          <p className="tagline">{ROUTES[side].tagline}</p>
         </header>
         {/* The navigation's lane: from under the titles down the whole page, on the edge between the
             pages; the navigation sticks in it, scrolling with the page until it reaches the top of
@@ -439,9 +452,9 @@ export const App: React.FC = () => {
             aria-label="Pages"
           >
             <div ref={homeNav} className="dock-half dock-home" inert={index !== 0}>
-              {PAGES.filter((p) => p.id !== "explorers").map((p) => (
-                <a key={p.id} href={`#/${p.id}`}>
-                  {p.label}
+              {SIDE_PAGES.map((id) => (
+                <a key={id} {...pageLink(id)} aria-current={page === id ? "page" : undefined}>
+                  {ROUTES[id].label}
                   <span className="menu-arrow" aria-hidden="true">
                     →
                   </span>
@@ -449,11 +462,11 @@ export const App: React.FC = () => {
               ))}
             </div>
             <div ref={sideNav} className="dock-half dock-side" inert={index !== 1}>
-              <a href="#/explorers">
+              <a {...pageLink("explorers")}>
                 <span className="menu-arrow" aria-hidden="true">
                   ←
                 </span>
-                The Explorers
+                {ROUTES.explorers.label}
               </a>
               {/* The page's sections: scrolls the content to one, and follows the reading */}
               {!frame.narrow && (
@@ -476,10 +489,7 @@ export const App: React.FC = () => {
           style={{ top: cardTop, right: frame.narrow ? frame.w + edge : frame.w + homeRail + GAP, width: homeCardW }}
           inert={index !== 0}
         >
-          <p>
-            The Free Explorers are an <a href={COLLECTIVE}>Open Collective</a> funding and building open-source projects. Every boat on this sea is an Explorer
-            backing the people who build them: the Architects.
-          </p>
+          <HomeIntro />
           <div className="count-row">
             <p className="count">
               <strong>{active}</strong> {active === 1 ? "explorer" : "explorers"} at sea

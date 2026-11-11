@@ -27,9 +27,22 @@ export const SECTIONS: Record<SidePage, Section[]> = {
   ],
 };
 
-// The teaser video, once it's out (a file in public/, e.g. "veshell-teaser.mp4"); until then a
-// placeholder holds its place.
-const TEASER_SRC: string | null = null;
+// Where the videos are served from: "" for this site, or the address of a CDN pulling from it
+// (e.g. a Bunny pull zone, "https://freeexplorers.b-cdn.net"), which serves the same paths.
+// Their posters stay on the site.
+export const MEDIA_BASE = "";
+const media = (file: string) => `${MEDIA_BASE}/${file}`;
+
+// Each video comes in two files: AV1 at 1440p (WebM), for the browsers that play it, and
+// H.264 at 1080p (MP4) for the others (Safari on Apple devices without an AV1 decoder).
+const AV1 = 'video/webm; codecs="av01.0.12M.10"';
+const AV1_OPUS = 'video/webm; codecs="av01.0.12M.10, opus"';
+const H264 = "video/mp4";
+
+// The teaser (null: a placeholder holds its place), and its first image, shown before it plays
+// and its thumbnail for search engines.
+export const TEASER: { webm: string; mp4: string } | null = { webm: "veshell-teaser.webm", mp4: "veshell-teaser.mp4" };
+export const TEASER_POSTER = "/veshell-teaser-poster.jpg";
 
 // A place for a clip or a screenshot still to record: its frame, and what will go there.
 const Media: React.FC<{ caption: string; ratio?: string }> = ({ caption, ratio = "16 / 9" }) => (
@@ -42,9 +55,83 @@ const Media: React.FC<{ caption: string; ratio?: string }> = ({ caption, ratio =
   </figure>
 );
 
+// A silent screen recording from Veshell (a file in public/, with its first frame as a .jpg
+// poster): its poster and a play button until clicked, then it loops; a click pauses it, and so
+// does scrolling it off screen. Loaded when the pointer comes over it (or on the click); the
+// button spins while it loads, and the poster goes once the video's own frames are showing.
+type ClipState = "idle" | "loading" | "playing";
+const Clip: React.FC<{ name: string; label: string }> = ({ name, label }) => {
+  const ref = React.useRef<HTMLVideoElement>(null);
+  const [state, setState] = React.useState<ClipState>("idle");
+  const [started, setStarted] = React.useState(false);
+  // Prerendered (no script to drive the button): the browser's own controls.
+  const scripted = typeof window !== "undefined";
+  React.useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+    const io = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) video.pause();
+    });
+    io.observe(video);
+    return () => io.disconnect();
+  }, []);
+  const toggle = () => {
+    const video = ref.current;
+    if (!video) return;
+    if (video.paused) {
+      video.muted = true;
+      video.play().catch(() => setState("idle"));
+    } else video.pause();
+  };
+  const preload = () => {
+    if (ref.current && ref.current.preload === "none") ref.current.preload = "auto";
+  };
+  return (
+    <div className={`clip clip-${state}`} onPointerEnter={preload}>
+      <video
+        ref={ref}
+        poster={started ? undefined : `/${name}.jpg`}
+        width={2560}
+        height={1440}
+        muted
+        loop
+        playsInline
+        preload="none"
+        controls={!scripted}
+        aria-label={label}
+        onClick={toggle}
+        onPlay={() => setState("loading")}
+        onWaiting={() => setState("loading")}
+        onPlaying={() => {
+          setStarted(true);
+          setState("playing");
+        }}
+        onPause={() => setState("idle")}
+      >
+        <source src={media(`${name}.webm`)} type={AV1} />
+        <source src={media(`${name}.mp4`)} type={H264} />
+      </video>
+      {scripted && (
+        <button
+          type="button"
+          className="clip-button"
+          onClick={toggle}
+          onFocus={preload}
+          aria-label={`${state === "idle" ? "Play" : "Pause"}: ${label}`}
+          aria-busy={state === "loading"}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            {state === "idle" ? <path d="M8 5.5v13l11-6.5z" /> : <path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" />}
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+};
+
 const Block: React.FC<{ id: string; title?: string; children: React.ReactNode }> = ({ id, title, children }) => (
   <section id={`section-${id}`} data-section={id} className="block">
-    {title && <h3>{title}</h3>}
+    {title && <h2>{title}</h2>}
     {children}
   </section>
 );
@@ -60,11 +147,22 @@ const INSTALL: { distro: string; command?: string; packages?: string }[] = [
 const REPO = "https://github.com/free-explorers/veshell";
 const INSTRUCTIONS = `${REPO}#installation`;
 
+// The Explorers' introduction, on the home page's card.
+export const HomeIntro: React.FC = () => (
+  <p>
+    The Free Explorers are an <a href={COLLECTIVE}>Open Collective</a> funding and building open-source projects. Every boat on this sea is an Explorer
+    backing the people who build them: the Architects.
+  </p>
+);
+
 export const VeshellContent: React.FC = () => (
   <>
     <Block id="teaser">
-      {TEASER_SRC ? (
-        <video className="teaser" src={TEASER_SRC} controls playsInline preload="metadata" />
+      {TEASER ? (
+        <video className="teaser" poster={TEASER_POSTER} controls playsInline preload="metadata" aria-label="Veshell teaser">
+          <source src={media(TEASER.webm)} type={AV1_OPUS} />
+          <source src={media(TEASER.mp4)} type={H264} />
+        </video>
       ) : (
         <div className="teaser teaser-placeholder">
           <span className="teaser-play" aria-hidden="true">
@@ -114,7 +212,7 @@ export const VeshellContent: React.FC = () => (
           workspace at the bottom. There's always an empty workspace waiting below, and empty ones clean themselves up. Group your apps by project, by theme, by
           whatever makes sense to you.
         </p>
-        <Media caption="Building a layout: apps opening, workspaces appearing" />
+        <Clip name="J1-Build" label="Building a layout in Veshell: apps opening, workspaces appearing" />
       </div>
     </Block>
 
@@ -125,7 +223,7 @@ export const VeshellContent: React.FC = () => (
           so you always feel where you're going. Add <kbd>Shift</kbd> to carry a window along: reorder it, or send it to the workspace above or below and follow
           it. The same four directions work everywhere, and the panels show the map at a glance for the mouse and touch.
         </p>
-        <Media caption="Navigating with W A S D" />
+        <Clip name="J2-NavMap" label="Moving around the Veshell map with W A S D" />
       </div>
     </Block>
 
@@ -135,7 +233,7 @@ export const VeshellContent: React.FC = () => (
           Every layout decision is kept, even across reboots. A closed app leaves a placeholder in its place; click it and Veshell resumes your work: the same
           documents, and for a terminal the same folder and the same program running.
         </p>
-        <Media caption="Reboot, and everything is where you left it" />
+        <Clip name="J3-Persist" label="Veshell after a reboot: every app back where it was" />
       </div>
     </Block>
 
@@ -146,7 +244,7 @@ export const VeshellContent: React.FC = () => (
           tab that never disturbs your layout. Browse and preview files in place. Its dashboard, the Helm, gathers your media, audio and Bluetooth devices,
           network, notifications and live system monitoring.
         </p>
-        <Media caption="The Overview and the Helm" />
+        <Clip name="J4-Helm" label="The Overview and the Helm in Veshell" />
       </div>
     </Block>
 
@@ -256,11 +354,11 @@ export const ArchitectsContent: React.FC = () => (
       <div className="architect">
         <img src="https://github.com/PapyElGringo.png?size=160" alt="" width={72} height={72} />
         <div>
-          <h4>
+          <h3>
             <a href="https://github.com/PapyElGringo" target="_blank" rel="noreferrer">
               PapyElGringo
             </a>
-          </h4>
+          </h3>
           <p>
             Adrien Peslerbe, front-end developer and UX architect. He created Material Shell, used by hundreds of thousands of people on GNOME, and now leads
             Veshell to change how we interact with our digital environment.

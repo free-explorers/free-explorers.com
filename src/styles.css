@@ -958,12 +958,12 @@ a:focus-visible {
   font-size: 19px;
   color: var(--ink);
 }
-.card-content h3 {
+.card-content h2 {
   margin: 26px 0 8px;
   font-size: 21px;
   font-weight: 700;
 }
-.card-content h4 {
+.card-content h3 {
   margin: 0 0 4px;
   font-size: 18px;
 }
@@ -1088,7 +1088,7 @@ a:focus-visible {
 .card-content .block + .block {
   margin-top: 34px;
 }
-.card-content .block h3 {
+.card-content .block h2 {
   margin-top: 0;
 }
 .teaser {
@@ -1297,4 +1297,123 @@ a:focus-visible {
 /* 8px above the teaser: with the card's 22px top padding, the same 30px as its sides */
 .teaser {
   margin-top: 8px;
+}
+
+/* The page's h1 around its wordmark: only a heading for search engines and screen readers. */
+.title-heading {
+  margin: 0;
+  font: inherit;
+}
+
+/* The prerendered page (scripts/prerender.mjs), shown only without JavaScript: the page's
+   content as a plain readable column. */
+html:not(.js) body {
+  overflow: auto;
+}
+.static-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 20px 64px;
+}
+.static-page h1 {
+  margin: 0;
+  font-size: clamp(44px, 9vw, 88px);
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+}
+.static-page nav,
+.static-page footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 24px 0 32px;
+}
+.static-page footer {
+  margin-top: 48px;
+}
+.static-page .block {
+  margin-bottom: 32px;
+}
+.static-page .teaser,
+.static-page img {
+  max-width: 100%;
+}
+
+/* Veshell's screen recordings, in a section's split beside its text: the poster and a play
+   button, the button hidden while it plays (a click anywhere on it pauses). */
+.clip {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+}
+.clip video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  cursor: pointer;
+}
+.clip-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(12, 28, 38, 0.72);
+  box-shadow: inset 0 0 0 3px #d9a441;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.clip-button:hover {
+  transform: scale(1.06);
+}
+.clip-button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+.clip-button svg {
+  width: 28px;
+  height: 28px;
+  fill: #d9a441;
+}
+.clip-idle .clip-button svg {
+  margin-left: 4px;
+}
+.clip-playing .clip-button {
+  opacity: 0;
+}
+/* Loading: the ring turns, a gap in it, until the first frames show. */
+.clip-loading .clip-button {
+  box-shadow: none;
+}
+.clip-loading .clip-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid #d9a441;
+  border-right-color: transparent;
+  animation: clip-spin 0.8s linear infinite;
+}
+@keyframes clip-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .clip-loading .clip-button::before {
+    animation-duration: 2.4s;
+  }
+}
+/* While playing, the button only comes back for the keyboard (a click on the video pauses). */
+.clip-playing .clip-button:focus-visible {
+  opacity: 1;
 }
